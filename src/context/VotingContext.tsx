@@ -266,13 +266,13 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // 8. Simulation flag
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // 9. Firebase live sync status & On/Off control (Default to false for safe trial mode)
+  // 9. Firebase live sync status & On/Off control (Default to true for real-time sync across all devices)
   const [isFirebaseEnabled, setIsFirebaseEnabled] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.FIREBASE_ENABLED);
-      return stored !== null ? stored === 'true' : false;
+      return stored !== null ? stored === 'true' : true;
     } catch {
-      return false;
+      return true;
     }
   });
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);

@@ -46,6 +46,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Admins
+    match /admins/{adminId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
