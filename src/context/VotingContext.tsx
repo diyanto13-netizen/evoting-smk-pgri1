@@ -30,6 +30,10 @@ import {
   batchSetFirestoreDocs,
   batchDeleteFirestoreDocs,
   fetchAllFirestoreDocs,
+  deleteAllFirestoreVotes,
+  deleteFirestoreVotesByCandidate,
+  deleteFirestoreVotesByCategory,
+  resetAllFirestoreVoters,
 } from '../firebase/firestoreService';
 
 interface CastVoteResult {
@@ -1054,36 +1058,23 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const resetAllVotersStatus = () => {
-    const periodVoteIds: string[] = [];
-    const resetVotersList: Voter[] = [];
-
+    // 1. Synchronously update local voters state
     setVoters((prev) =>
-      prev.map((v) => {
-        if (v.periodId === activePeriodId) {
-          const updated = { ...v, hasVoted: false, votedAt: undefined };
-          resetVotersList.push(updated);
-          return updated;
-        }
-        return v;
-      })
+      prev.map((v) =>
+        v.periodId === activePeriodId
+          ? { ...v, hasVoted: false, votedAt: undefined }
+          : v
+      )
     );
 
-    setVotes((prev) =>
-      prev.filter((v) => {
-        if (v.periodId === activePeriodId) {
-          periodVoteIds.push(v.id);
-          return false;
-        }
-        return true;
-      })
-    );
+    // 2. Synchronously clear local votes for active period
+    setVotes((prev) => prev.filter((v) => v.periodId !== activePeriodId));
 
-    if (periodVoteIds.length > 0) {
-      syncToCloud(() => batchDeleteFirestoreDocs(COLLECTIONS.VOTES, periodVoteIds));
-    }
-    if (resetVotersList.length > 0) {
-      syncToCloud(() => batchSetFirestoreDocs(COLLECTIONS.VOTERS, resetVotersList));
-    }
+    // 3. Atomically purge from Cloud Firestore so all connected browsers update in real-time
+    syncToCloud(async () => {
+      await deleteAllFirestoreVotes(activePeriodId);
+      await resetAllFirestoreVoters(activePeriodId);
+    });
 
     addAuditLog('RESET_KOTAK_SUARA', `Seluruh kotak suara periode ${activePeriod?.academicYear} dikosongkan dan status DPT direset.`, 'ADMIN');
   };
@@ -1094,94 +1085,83 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ? `No. 0${candidate.ballotNumber} (${candidate.chairmanName} & ${candidate.viceChairmanName} - ${candidate.category})`
       : candidateId;
 
-    const targetVoteIds: string[] = [];
-    setVotes((prev) => {
-      return prev.filter((v) => {
-        if (v.periodId === activePeriodId && v.candidateId === candidateId) {
-          targetVoteIds.push(v.id);
-          return false;
-        }
-        return true;
-      });
-    });
+    const countDeleted = votes.filter(
+      (v) => v.periodId === activePeriodId && v.candidateId === candidateId
+    ).length;
 
-    if (targetVoteIds.length > 0) {
-      syncToCloud(() => batchDeleteFirestoreDocs(COLLECTIONS.VOTES, targetVoteIds));
-    }
+    // 1. Synchronously update local state
+    setVotes((prev) =>
+      prev.filter((v) => !(v.periodId === activePeriodId && v.candidateId === candidateId))
+    );
+
+    // 2. Atomically delete from Cloud Firestore
+    syncToCloud(async () => {
+      await deleteFirestoreVotesByCandidate(candidateId, activePeriodId);
+    });
 
     addAuditLog(
       'RESET_SUARA_PASLON',
-      `Berhasil mengosongkan ${targetVoteIds.length} perolehan suara untuk paslon ${candLabel} periode ${activePeriod?.academicYear || ''}.`,
+      `Berhasil mengosongkan ${countDeleted} perolehan suara untuk paslon ${candLabel} periode ${activePeriod?.academicYear || ''}.`,
       'ADMIN'
     );
-    return targetVoteIds.length;
+    return countDeleted;
   };
 
   const resetCategoryVotes = (category: CandidateCategory): number => {
-    const targetVoteIds: string[] = [];
-    setVotes((prev) => {
-      return prev.filter((v) => {
-        if (v.periodId === activePeriodId && v.category === category) {
-          targetVoteIds.push(v.id);
-          return false;
-        }
-        return true;
-      });
-    });
+    const countDeleted = votes.filter(
+      (v) => v.periodId === activePeriodId && v.category === category
+    ).length;
 
-    if (targetVoteIds.length > 0) {
-      syncToCloud(() => batchDeleteFirestoreDocs(COLLECTIONS.VOTES, targetVoteIds));
-    }
+    // 1. Synchronously update local state
+    setVotes((prev) =>
+      prev.filter((v) => !(v.periodId === activePeriodId && v.category === category))
+    );
+
+    // 2. Atomically delete from Cloud Firestore
+    syncToCloud(async () => {
+      await deleteFirestoreVotesByCategory(category, activePeriodId);
+    });
 
     addAuditLog(
       'RESET_SUARA_KATEGORI',
-      `Berhasil mengosongkan ${targetVoteIds.length} perolehan suara pada seluruh paslon kategori ${category} periode ${activePeriod?.academicYear || ''}.`,
+      `Berhasil mengosongkan ${countDeleted} perolehan suara pada seluruh paslon kategori ${category} periode ${activePeriod?.academicYear || ''}.`,
       'ADMIN'
     );
-    return targetVoteIds.length;
+    return countDeleted;
   };
 
   const resetAllCandidateVotes = (resetVotersToo = true): number => {
-    const targetVoteIds: string[] = [];
-    setVotes((prev) => {
-      return prev.filter((v) => {
-        if (v.periodId === activePeriodId) {
-          targetVoteIds.push(v.id);
-          return false;
-        }
-        return true;
-      });
-    });
+    const countDeleted = votes.filter((v) => v.periodId === activePeriodId).length;
 
-    if (targetVoteIds.length > 0) {
-      syncToCloud(() => batchDeleteFirestoreDocs(COLLECTIONS.VOTES, targetVoteIds));
-    }
+    // 1. Synchronously update local state
+    setVotes((prev) => prev.filter((v) => v.periodId !== activePeriodId));
 
     if (resetVotersToo) {
-      const resetVotersList: Voter[] = [];
       setVoters((prev) =>
-        prev.map((v) => {
-          if (v.periodId === activePeriodId) {
-            const updated = { ...v, hasVoted: false, votedAt: undefined };
-            resetVotersList.push(updated);
-            return updated;
-          }
-          return v;
-        })
+        prev.map((v) =>
+          v.periodId === activePeriodId
+            ? { ...v, hasVoted: false, votedAt: undefined }
+            : v
+        )
       );
-      if (resetVotersList.length > 0) {
-        syncToCloud(() => batchSetFirestoreDocs(COLLECTIONS.VOTERS, resetVotersList));
-      }
     }
+
+    // 2. Atomically delete from Cloud Firestore so ALL browsers (Edge, Chrome, Netlify, Github Pages) update
+    syncToCloud(async () => {
+      await deleteAllFirestoreVotes(activePeriodId);
+      if (resetVotersToo) {
+        await resetAllFirestoreVoters(activePeriodId);
+      }
+    });
 
     addAuditLog(
       'RESET_SEMUA_SUARA_PASLON',
-      `Berhasil mengosongkan seluruh perolehan suara (${targetVoteIds.length} suara) paslon periode ${activePeriod?.academicYear || ''}.${
+      `Berhasil mengosongkan seluruh perolehan suara (${countDeleted} suara) paslon periode ${activePeriod?.academicYear || ''}.${
         resetVotersToo ? ' Status pemilih DPT juga dikembalikan ke Belum Memilih.' : ''
       }`,
       'ADMIN'
     );
-    return targetVoteIds.length;
+    return countDeleted;
   };
 
   // Simulation mode

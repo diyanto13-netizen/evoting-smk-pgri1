@@ -220,3 +220,94 @@ export async function fetchAllFirestoreDocs<T extends { id: string }>(
   }
 }
 
+/**
+ * Specialized helpers for atomic Cloud Firestore vote reset
+ */
+export async function deleteAllFirestoreVotes(periodId?: string): Promise<number> {
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.VOTES));
+    const idsToDelete: string[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (!periodId || data.periodId === periodId) {
+        idsToDelete.push(d.id);
+      }
+    });
+    if (idsToDelete.length > 0) {
+      await batchDeleteFirestoreDocs(COLLECTIONS.VOTES, idsToDelete);
+    }
+    return idsToDelete.length;
+  } catch (error) {
+    console.error('Error deleting votes from Firestore:', error);
+    return 0;
+  }
+}
+
+export async function deleteFirestoreVotesByCandidate(candidateId: string, periodId?: string): Promise<number> {
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.VOTES));
+    const idsToDelete: string[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (data.candidateId === candidateId && (!periodId || data.periodId === periodId)) {
+        idsToDelete.push(d.id);
+      }
+    });
+    if (idsToDelete.length > 0) {
+      await batchDeleteFirestoreDocs(COLLECTIONS.VOTES, idsToDelete);
+    }
+    return idsToDelete.length;
+  } catch (error) {
+    console.error('Error deleting candidate votes from Firestore:', error);
+    return 0;
+  }
+}
+
+export async function deleteFirestoreVotesByCategory(category: string, periodId?: string): Promise<number> {
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.VOTES));
+    const idsToDelete: string[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (data.category === category && (!periodId || data.periodId === periodId)) {
+        idsToDelete.push(d.id);
+      }
+    });
+    if (idsToDelete.length > 0) {
+      await batchDeleteFirestoreDocs(COLLECTIONS.VOTES, idsToDelete);
+    }
+    return idsToDelete.length;
+  } catch (error) {
+    console.error('Error deleting category votes from Firestore:', error);
+    return 0;
+  }
+}
+
+export async function resetAllFirestoreVoters(periodId: string): Promise<void> {
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.VOTERS));
+    const toUpdate: string[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (data.periodId === periodId && data.hasVoted) {
+        toUpdate.push(d.id);
+      }
+    });
+    if (toUpdate.length > 0) {
+      const chunkSize = 400;
+      for (let i = 0; i < toUpdate.length; i += chunkSize) {
+        const chunk = toUpdate.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
+        chunk.forEach((voterId) => {
+          const ref = doc(db, COLLECTIONS.VOTERS, voterId);
+          batch.update(ref, { hasVoted: false, votedAt: null });
+        });
+        await batch.commit();
+      }
+    }
+  } catch (error) {
+    console.error('Error resetting voters in Firestore:', error);
+  }
+}
+
+
