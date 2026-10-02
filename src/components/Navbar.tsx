@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useVoting } from '../context/VotingContext';
 import { PemilosLogo } from './PemilosLogo';
-import { FirebaseConnectionModal } from './FirebaseConnectionModal';
 import {
   Vote,
   ShieldCheck,
@@ -48,7 +47,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const [showDemoMenu, setShowDemoMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showFirebaseModal, setShowFirebaseModal] = useState(false);
 
   // Unvoted sample students for instant test
   const demoUnvotedStudents = activeVoters.filter((v) => !v.hasVoted).slice(0, 3);
@@ -128,16 +126,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Firebase Cloud Sync Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setShowFirebaseModal(true)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-black border transition-all cursor-pointer ${
+          {/* Firebase Cloud Sync Status Badge (Read-Only) */}
+          <div
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-black border select-none ${
               isFirebaseEnabled
-                ? 'bg-emerald-950 text-emerald-300 border-emerald-500/80 hover:bg-emerald-900'
-                : 'bg-amber-950 text-amber-300 border-amber-500/80 hover:bg-amber-900'
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-500/80'
+                : 'bg-amber-950 text-amber-300 border-amber-500/80'
             }`}
-            title="Klik untuk membuka pengaturan koneksi Firebase (ON / OFF)"
           >
             {isFirebaseEnabled ? (
               <>
@@ -152,7 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Mode Uji Coba: OFF</span>
               </>
             )}
-          </button>
+          </div>
 
           <span className="hidden md:inline text-slate-300 font-medium">Tahun Ajaran:</span>
           <span className="font-bold text-white bg-blue-700 px-2.5 py-0.5 rounded-md text-xs border border-blue-500 shadow-2xs">
@@ -686,47 +681,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <span className="text-xs font-black text-amber-900 underline">Buka</span>
             </button>
-
-            {/* Mobile Firebase Toggle Card */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowFirebaseModal(true);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 rounded-2xl border-2 flex items-center justify-between text-left transition-colors ${
-                isFirebaseEnabled
-                  ? 'bg-emerald-50 text-emerald-950 border-emerald-300'
-                  : 'bg-amber-50 text-amber-950 border-amber-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    isFirebaseEnabled ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
-                  }`}
-                >
-                  {isFirebaseEnabled ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black uppercase tracking-wider opacity-75">
-                    Mode Koneksi Server
-                  </span>
-                  <span className="block text-xs sm:text-sm font-black">
-                    {isFirebaseEnabled ? 'Cloud Firestore (Online)' : 'Mode Uji Coba Aman (Offline)'}
-                  </span>
-                </div>
-              </div>
-              <span className="text-xs font-black underline">Atur</span>
-            </button>
           </div>
         )}
       </div>
-
-      {/* Firebase Database Connection Modal */}
-      {showFirebaseModal && (
-        <FirebaseConnectionModal onClose={() => setShowFirebaseModal(false)} />
-      )}
     </header>
   );
 };
