@@ -24,6 +24,7 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -70,8 +71,9 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
 
     try {
       // Stop old stream
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -83,6 +85,7 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
         audio: false,
       });
 
+      streamRef.current = mediaStream;
       setStream(mediaStream);
 
       if (videoRef.current) {
@@ -101,6 +104,7 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
         // Try fallback to any video device
         try {
           const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          streamRef.current = fallbackStream;
           setStream(fallbackStream);
           if (videoRef.current) {
             videoRef.current.srcObject = fallbackStream;
@@ -120,8 +124,9 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
     startCamera(facingMode);
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
     };
   }, [facingMode]);
@@ -156,8 +161,9 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
               setScanDetected(parsed);
 
               // Stop camera tracks
-              if (stream) {
-                stream.getTracks().forEach((track) => track.stop());
+              if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop());
+                streamRef.current = null;
               }
 
               // Auto-forward

@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { Voter } from '../types/voting';
+import { ensureUniquePins, generateUniquePin } from './pinUtils';
 
 export interface ParsedVoterItem {
   nisn: string;
@@ -211,15 +212,17 @@ export const parseVotersExcelFile = (file: File): Promise<ParseExcelResult> => {
             studentName: rawName,
             classGrade: rawClass,
             major: rawMajor,
-            pin: rawPin.length === 6 ? rawPin : Math.floor(100000 + Math.random() * 900000).toString(),
+            pin: rawPin.length === 6 ? rawPin : undefined,
           });
         }
 
+        const uniqueVoters = ensureUniquePins(voters);
+
         resolve({
-          success: voters.length > 0,
-          voters,
+          success: uniqueVoters.length > 0,
+          voters: uniqueVoters,
           errors,
-          totalRows: voters.length,
+          totalRows: uniqueVoters.length,
         });
       } catch (err: any) {
         resolve({

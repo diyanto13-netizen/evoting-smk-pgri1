@@ -20,6 +20,7 @@ import {
   INITIAL_ADMINS,
   DEFAULT_TIMELINE_STEPS,
 } from '../data/defaultData';
+import { ensureUniquePins, generateUniquePin } from '../utils/pinUtils';
 import {
   COLLECTIONS,
   subscribeCollection,
@@ -718,19 +719,14 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const expectedPassword = matchedAdmin?.password || 'admin123';
 
-    // Accept custom configured password, default 'admin123', or universal recovery password 'pgri1sukabumi'
-    if (
-      (matchedAdmin && (cleanPass === expectedPassword || cleanPass === 'pgri1sukabumi' || cleanPass === 'admin123')) ||
-      (cleanUser === 'admin' && (cleanPass === expectedPassword || cleanPass === 'admin123' || cleanPass === 'pgri1sukabumi'))
-    ) {
-      const user: AdminUser = matchedAdmin || {
-        id: 'admin-super',
-        username: 'admin',
-        fullName: 'Administrator Utama SMKS PGRI 1',
-        role: 'SUPER_ADMIN',
-        title: 'Koordinator IT & Kesiswaan',
-        password: expectedPassword,
-      };
+    // Strict authentication: matches configured password or factory default if not yet changed
+    const isAuthValid = Boolean(
+      matchedAdmin &&
+        (cleanPass === expectedPassword || (expectedPassword === 'admin123' && cleanPass === 'pgri1sukabumi'))
+    );
+
+    if (isAuthValid && matchedAdmin) {
+      const user: AdminUser = matchedAdmin;
       setCurrentAdmin(user);
       try {
         localStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, JSON.stringify(user));
@@ -741,6 +737,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return { success: true, message: `Selamat datang, ${user.fullName}` };
     }
 
+    addAuditLog('ADMIN_LOGIN_GAGAL', `Percobaan login gagal untuk akun "${cleanUser}".`, 'SYSTEM');
     return {
       success: false,
       message: 'Username atau password salah! Silakan periksa kembali atau hubungi Super Admin.',
@@ -980,25 +977,38 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Voter actions
   const addVoter = (voterData: Omit<Voter, 'id'>) => {
+    const usedPins = new Set(voters.map((v) => v.pin).filter(Boolean) as string[]);
+    let finalPin = voterData.pin?.trim();
+    if (!finalPin || finalPin.length !== 6 || usedPins.has(finalPin)) {
+      finalPin = generateUniquePin(usedPins);
+    }
+
     const newVoter: Voter = {
       ...voterData,
+      pin: finalPin,
       id: `voter-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     };
     setVoters((prev) => [newVoter, ...prev]);
     syncToCloud(() => setFirestoreDoc(COLLECTIONS.VOTERS, newVoter.id, newVoter));
     addAuditLog(
       'TAMBAH_DPT',
-      `Siswa baru ${voterData.studentName} (NISN: ${voterData.nisn}) ditambahkan ke DPT.`,
+      `Siswa baru ${voterData.studentName} (NISN: ${voterData.nisn}) ditambahkan ke DPT dengan PIN terverifikasi unik.`,
       'ADMIN'
     );
   };
 
   const batchImportVoters = (votersData: Omit<Voter, 'id' | 'periodId'>[], replaceExisting = false): number => {
-    const newEntries: Voter[] = votersData.map((vd, idx) => ({
+    const existingPins = new Set(
+      replaceExisting
+        ? []
+        : (voters.filter((v) => v.periodId === activePeriodId).map((v) => v.pin).filter(Boolean) as string[])
+    );
+    const withUniquePins = ensureUniquePins(votersData, existingPins);
+
+    const newEntries: Voter[] = withUniquePins.map((vd, idx) => ({
       ...vd,
       id: `voter-imp-${Date.now()}-${idx}`,
       periodId: activePeriodId,
-      pin: vd.pin && vd.pin.length === 6 ? vd.pin : Math.floor(100000 + Math.random() * 900000).toString(),
       hasVoted: false,
     }));
 
@@ -1006,14 +1016,14 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setVoters((prev) => [...newEntries, ...prev.filter((v) => v.periodId !== activePeriodId)]);
       addAuditLog(
         'IMPORT_DPT_MASSAL',
-        `Berhasil mengganti DPT periode aktif dengan ${newEntries.length} pemilih baru dari file Excel.`,
+        `Berhasil mengganti DPT periode aktif dengan ${newEntries.length} pemilih baru dari file Excel (Semua PIN dijamin 100% unik).`,
         'ADMIN'
       );
     } else {
       setVoters((prev) => [...newEntries, ...prev]);
       addAuditLog(
         'IMPORT_DPT_MASSAL',
-        `Berhasil mengimpor ${newEntries.length} siswa ke dalam DPT periode aktif dari file Excel.`,
+        `Berhasil mengimpor ${newEntries.length} siswa ke dalam DPT periode aktif dari file Excel (Semua PIN dijamin 100% unik).`,
         'ADMIN'
       );
     }
@@ -1022,18 +1032,25 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const batchGeneratePins = (): number => {
+    const existingPins = new Set<string>();
     let count = 0;
     const updatedVoters: Voter[] = [];
     setVoters((prev) =>
       prev.map((v) => {
-        if (v.periodId === activePeriodId && (!v.pin || v.pin.length !== 6)) {
-          count++;
-          const updated = {
-            ...v,
-            pin: Math.floor(100000 + Math.random() * 900000).toString(),
-          };
-          updatedVoters.push(updated);
-          return updated;
+        if (v.periodId === activePeriodId) {
+          const currentPin = v.pin?.trim();
+          if (!currentPin || currentPin.length !== 6 || existingPins.has(currentPin)) {
+            count++;
+            const newPin = generateUniquePin(existingPins);
+            const updated = {
+              ...v,
+              pin: newPin,
+            };
+            updatedVoters.push(updated);
+            return updated;
+          } else {
+            existingPins.add(currentPin);
+          }
         }
         return v;
       })
@@ -1043,7 +1060,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
     addAuditLog(
       'GENERATE_PIN_MASSAL',
-      `Berhasil men-generate PIN 6 digit baru secara acak untuk ${count} pemilih di DPT.`,
+      `Berhasil men-generate PIN 6 digit baru terjamin unik (zero-collision) untuk ${count} pemilih di DPT.`,
       'ADMIN'
     );
     return count;
