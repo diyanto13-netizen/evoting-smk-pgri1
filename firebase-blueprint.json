@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "period": {
+      "title": "Period",
+      "description": "Academic year and election period",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "status": { "type": "string", "enum": ["UPCOMING", "OPEN", "PAUSED", "CLOSED"] },
+        "isResultPublished": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "academicYear", "status", "isResultPublished"]
+    },
+    "candidate": {
+      "title": "Candidate",
+      "description": "Candidate pair for OSIS or MPK",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "periodId": { "type": "string" },
+        "category": { "type": "string", "enum": ["OSIS", "MPK"] },
+        "ballotNumber": { "type": "number" },
+        "chairmanName": { "type": "string" },
+        "viceChairmanName": { "type": "string" },
+        "chairmanClass": { "type": "string" },
+        "viceChairmanClass": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "slogan": { "type": "string" },
+        "vision": { "type": "string" },
+        "mission": { "type": "array" },
+        "programs": { "type": "array" }
+      },
+      "required": ["id", "periodId", "category", "ballotNumber", "chairmanName", "viceChairmanName"]
+    },
+    "voter": {
+      "title": "Voter",
+      "description": "Registered voter in DPT with NISN and PIN",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "periodId": { "type": "string" },
+        "nisn": { "type": "string" },
+        "name": { "type": "string" },
+        "className": { "type": "string" },
+        "gender": { "type": "string", "enum": ["L", "P"] },
+        "pin": { "type": "string" },
+        "hasVoted": { "type": "boolean" },
+        "votedAt": { "type": "string" }
+      },
+      "required": ["id", "periodId", "nisn", "name", "className", "gender", "hasVoted"]
+    },
+    "vote": {
+      "title": "Vote",
+      "description": "Anonymous vote cast in ballot box conforming to LUBER principles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "periodId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "category": { "type": "string", "enum": ["OSIS", "MPK"] },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "periodId", "candidateId", "category", "timestamp"]
+    },
+    "auditLog": {
+      "title": "AuditLog",
+      "description": "Audit trails for elections and administrator operations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "userType": { "type": "string", "enum": ["SYSTEM", "ADMIN", "OPERATOR", "STUDENT"] }
+      },
+      "required": ["id", "timestamp", "action", "details", "userType"]
+    },
+    "timelineStep": {
+      "title": "TimelineStep",
+      "description": "Timeline milestone and schedule for the election",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "periodId": { "type": "string" },
+        "stepNumber": { "type": "number" },
+        "title": { "type": "string" },
+        "dateRange": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["DONE", "ACTIVE", "UPCOMING"] }
+      },
+      "required": ["id", "periodId", "stepNumber", "title", "dateRange", "description", "status"]
+    }
+  },
+  "firestore": {
+    "/periods/{periodId}": {
+      "schema": { "$ref": "#/entities/period" },
+      "description": "Collection of academic year periods and their voting status"
+    },
+    "/candidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/candidate" },
+      "description": "Collection of candidates registered for OSIS and MPK"
+    },
+    "/voters/{voterId}": {
+      "schema": { "$ref": "#/entities/voter" },
+      "description": "Collection of registered voters (DPT) with NISN and PIN"
+    },
+    "/votes/{voteId}": {
+      "schema": { "$ref": "#/entities/vote" },
+      "description": "Digital ballot box storing anonymous votes (no voter identity stored)"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/auditLog" },
+      "description": "Audit log events for transparency and tamper-evident auditing"
+    },
+    "/timeline_steps/{stepId}": {
+      "schema": { "$ref": "#/entities/timelineStep" },
+      "description": "Official timeline stages and dates for the election process"
+    }
+  }
+}

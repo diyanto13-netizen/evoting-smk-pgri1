@@ -1,0 +1,6 @@
+{
+  "name": "E-Voting OSIS & MPK SMKS PGRI 1 Sukabumi",
+  "description": "Sistem pemilihan digital Ketua & Wakil Ketua OSIS serta MPK SMKS PGRI 1 Kota Sukabumi yang transparan, real-time, dan aman berprinsip LUBER JURDIL.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

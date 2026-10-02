@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Connection testing
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Election Periods
+    match /periods/{periodId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Candidates (OSIS & MPK)
+    match /candidates/{candidateId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Registered Voters (DPT)
+    match /voters/{voterId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Digital Ballot Box (Anonymous Votes)
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create: if true;
+      allow delete: if true;
+      allow update: if false; // Votes are immutable once cast
+    }
+
+    // Audit Trail
+    match /audit_logs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false; // Audit logs are tamper-evident
+    }
+
+    // Timeline Steps
+    match /timeline_steps/{stepId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
