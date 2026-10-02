@@ -10,9 +10,7 @@ import {
   BarChart3,
   Sliders,
   ChevronDown,
-  Sparkles,
   AlertTriangle,
-  Play,
   Pause,
   Cloud,
   CloudOff,
@@ -37,26 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     logoutVoter,
     currentAdmin,
     logoutAdmin,
-    activeVoters,
-    loginVoter,
-    isSimulating,
-    toggleSimulation,
     isFirebaseEnabled,
     isFirebaseConnected,
   } = useVoting();
 
-  const [showDemoMenu, setShowDemoMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Unvoted sample students for instant test
-  const demoUnvotedStudents = activeVoters.filter((v) => !v.hasVoted).slice(0, 3);
-  const demoVotedStudent = activeVoters.find((v) => v.hasVoted);
-
-  const handleQuickLogin = (nisn: string, pin: string) => {
-    loginVoter(nisn, pin);
-    setCurrentView('vote');
-    setShowDemoMenu(false);
-  };
 
   const getStatusBox = () => {
     if (!activePeriod) return null;
@@ -307,129 +290,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               {getStatusBox()}
             </div>
 
-            {/* 6. Uji Coba Akun (Warm Amber / Golden Box) */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowDemoMenu(!showDemoMenu)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-2xl border-2 transition-all cursor-pointer text-left ${
-                  showDemoMenu
-                    ? 'bg-amber-100 text-amber-950 border-amber-500 shadow-md ring-2 ring-amber-300'
-                    : 'bg-amber-50/95 hover:bg-amber-100/95 text-amber-950 border-amber-300 hover:border-amber-400 shadow-2xs'
-                }`}
-                title="Pilih akun pengujian simulasi"
-              >
-                <div className="w-8 h-8 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center shrink-0 shadow-2xs">
-                  <Sparkles className="w-4 h-4 text-amber-950" />
-                </div>
-                <div className="leading-tight">
-                  <span className="block text-[9px] font-black uppercase tracking-wider text-amber-800">
-                    Simulasi TPS
-                  </span>
-                  <span className="block text-xs font-black tracking-tight whitespace-nowrap">
-                    Uji Coba Akun
-                  </span>
-                </div>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-amber-700 transition-transform duration-200 ${
-                    showDemoMenu ? 'rotate-180 text-amber-900' : ''
-                  }`}
-                />
-              </button>
-
-              {/* Demo Switcher Dropdown Modal */}
-              {showDemoMenu && (
-                <div className="absolute right-0 mt-2.5 w-92 bg-white rounded-3xl shadow-2xl border-2 border-slate-300 p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="pb-3 border-b border-slate-200 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        Pintas Akun Pengujian (Demo)
-                      </p>
-                      <p className="text-xs text-slate-600 mt-0.5">
-                        Klik siswa untuk langsung uji coba masuk ke bilik suara:
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="py-2.5 space-y-2 max-h-72 overflow-y-auto">
-                    <p className="text-[10px] font-black tracking-wider text-slate-500 uppercase px-1">
-                      Siswa Belum Memilih (Siap Coblos):
-                    </p>
-                    {demoUnvotedStudents.map((st) => (
-                      <button
-                        key={st.id}
-                        type="button"
-                        onClick={() => handleQuickLogin(st.nisn, st.pin)}
-                        className="w-full text-left p-2.5 rounded-2xl bg-slate-50 hover:bg-blue-50/80 border border-slate-200 hover:border-blue-300 transition-all flex items-center justify-between group cursor-pointer"
-                      >
-                        <div>
-                          <p className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-blue-700">
-                            {st.studentName}
-                          </p>
-                          <p className="text-[11px] text-slate-600 font-medium">
-                            {st.classGrade} • NISN: {st.nisn}
-                          </p>
-                        </div>
-                        <span className="text-[11px] bg-blue-100 text-blue-900 px-2 py-1 rounded-lg font-mono font-black border border-blue-200 shrink-0">
-                          PIN: {st.pin}
-                        </span>
-                      </button>
-                    ))}
-
-                    {demoVotedStudent && (
-                      <>
-                        <div className="pt-2 border-t border-slate-200"></div>
-                        <p className="text-[10px] font-black tracking-wider text-slate-500 uppercase px-1">
-                          Uji Coba Siswa Sudah Memilih (Uji Validasi):
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickLogin(demoVotedStudent.nisn, demoVotedStudent.pin)}
-                          className="w-full text-left p-2.5 rounded-2xl bg-rose-50/50 hover:bg-rose-50 border border-rose-200 hover:border-rose-300 transition-all flex items-center justify-between group cursor-pointer"
-                        >
-                          <div>
-                            <p className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-rose-700">
-                              {demoVotedStudent.studentName}
-                            </p>
-                            <p className="text-[11px] text-slate-600 font-medium">
-                              {demoVotedStudent.classGrade} • NISN: {demoVotedStudent.nisn}
-                            </p>
-                          </div>
-                          <span className="text-[10px] bg-rose-100 text-rose-900 px-2 py-0.5 rounded-md font-black border border-rose-300 shrink-0">
-                            Sudah Nyoblos
-                          </span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
-                    <span className="text-slate-700 font-bold">Simulator TPS:</span>
-                    <button
-                      type="button"
-                      onClick={toggleSimulation}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs ${
-                        isSimulating
-                          ? 'bg-rose-600 text-white hover:bg-rose-700'
-                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                      }`}
-                    >
-                      {isSimulating ? (
-                        <>
-                          <Pause className="w-3.5 h-3.5" /> Stop Simulasi
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-3.5 h-3.5" /> Simulasi Suara
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Voter Session Active Box */}
             {currentSession && (
               <div className="flex items-center gap-2 pl-2 border-l-2 border-slate-200">
@@ -477,15 +337,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Mobile hamburger button */}
           <div className="flex lg:hidden items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowDemoMenu(!showDemoMenu)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black bg-amber-50 text-amber-950 border-2 border-amber-300"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Uji Coba</span>
-            </button>
-
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -655,31 +506,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
               <span className="text-xs font-bold opacity-60">→</span>
-            </button>
-
-            {/* 5. Uji Coba Akun (Mobile Amber Card) */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowDemoMenu(true);
-                setMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-between p-3 rounded-2xl border-2 bg-amber-50/95 text-amber-950 border-amber-300 text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center shrink-0 shadow-2xs">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black uppercase tracking-wider text-amber-800">
-                    Pilihan Akun Demo
-                  </span>
-                  <span className="block text-sm font-black">
-                    Uji Coba Akun & Simulator
-                  </span>
-                </div>
-              </div>
-              <span className="text-xs font-black text-amber-900 underline">Buka</span>
             </button>
           </div>
         )}
