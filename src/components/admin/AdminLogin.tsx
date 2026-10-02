@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import { useVoting } from '../../context/VotingContext';
 import { PemilosLogo } from '../PemilosLogo';
-import { Lock, KeyRound, User, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Lock, KeyRound, User, ArrowRight, AlertCircle } from 'lucide-react';
 
 interface AdminLoginProps {
   onSuccess: () => void;
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
-  const { loginAdmin, admins } = useVoting();
-  const superAdmin = admins.find((a) => a.username === 'admin.kesiswaan');
-  const tpsAdmin = admins.find((a) => a.username === 'panitia.tps');
-  const superPass = superAdmin?.password || 'admin123';
-  const tpsPass = tpsAdmin?.password || 'admin123';
+  const { loginAdmin } = useVoting();
 
-  const [username, setUsername] = useState('admin.kesiswaan');
-  const [password, setPassword] = useState(superPass);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,12 +30,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
         setErrorMsg(res.message);
       }
     }, 350);
-  };
-
-  const handleQuickFill = (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-    setErrorMsg(null);
   };
 
   return (
@@ -123,36 +113,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
             )}
           </button>
         </form>
-
-        {/* Demo fast-fill accounts for evaluator with high contrast */}
-        <div className="p-5 bg-slate-50 border-t-2 border-slate-200 text-xs space-y-2.5">
-          <div className="flex items-center gap-1.5 font-black text-slate-900 text-xs sm:text-sm">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Kredensial Pengujian (Demo Panitia):</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin.kesiswaan', superPass)}
-              className="p-3 rounded-xl bg-white border-2 border-slate-200 hover:border-blue-500 text-left transition-colors cursor-pointer"
-            >
-              <p className="font-black text-slate-950 text-xs sm:text-sm">Super Admin</p>
-              <p className="text-xs text-slate-700 font-semibold">User: admin.kesiswaan</p>
-              <p className="text-xs text-slate-700 font-semibold font-mono">Pass: {superPass}</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('panitia.tps', tpsPass)}
-              className="p-3 rounded-xl bg-white border-2 border-slate-200 hover:border-blue-500 text-left transition-colors cursor-pointer"
-            >
-              <p className="font-black text-slate-950 text-xs sm:text-sm">Operator TPS</p>
-              <p className="text-xs text-slate-700 font-semibold">User: panitia.tps</p>
-              <p className="text-xs text-slate-700 font-semibold font-mono">Pass: {tpsPass}</p>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
