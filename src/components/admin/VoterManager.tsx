@@ -26,6 +26,8 @@ import {
   FileCheck,
   HelpCircle,
   X,
+  UserCheck,
+  GraduationCap,
 } from 'lucide-react';
 
 export const VoterManager: React.FC = () => {
@@ -47,10 +49,22 @@ export const VoterManager: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
 
   // Single add form
+  const [voterCategory, setVoterCategory] = useState<'SISWA' | 'GURU'>('SISWA');
   const [nisn, setNisn] = useState('');
   const [studentName, setStudentName] = useState('');
   const [classGrade, setClassGrade] = useState('XII TKJ 1');
   const [major, setMajor] = useState('Teknik Komputer & Jaringan (TKJ)');
+
+  const handleSelectCategory = (cat: 'SISWA' | 'GURU') => {
+    setVoterCategory(cat);
+    if (cat === 'GURU') {
+      setClassGrade('DEWAN GURU');
+      setMajor('Pendidik / Tenaga Kependidikan');
+    } else {
+      setClassGrade('XII TKJ 1');
+      setMajor('Teknik Komputer & Jaringan (TKJ)');
+    }
+  };
 
   // Excel Import states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -324,8 +338,8 @@ export const VoterManager: React.FC = () => {
             <thead className="bg-slate-100 text-slate-800 font-black border-b-2 border-slate-200 uppercase tracking-wider text-xs">
               <tr>
                 <th className="p-3.5 pl-5">No.</th>
-                <th className="p-3.5">NISN</th>
-                <th className="p-3.5">Nama Siswa / Guru</th>
+                <th className="p-3.5">NISN / NIP</th>
+                <th className="p-3.5">Nama Pemilih</th>
                 <th className="p-3.5">Kelas & Jurusan</th>
                 <th className="p-3.5 text-center">PIN Rahasia</th>
                 <th className="p-3.5 text-center">Status Suara</th>
@@ -392,20 +406,63 @@ export const VoterManager: React.FC = () => {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border-2 border-slate-300 space-y-4">
-            <h3 className="font-black text-slate-950 text-lg">
-              Tambah Pemilih Baru ke DPT
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-slate-950 text-lg">
+                Tambah Pemilih Baru ke DPT
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Category Selector: Siswa vs Guru */}
+            <div className="flex rounded-2xl bg-slate-100 p-1 border border-slate-300 text-xs font-black">
+              <button
+                type="button"
+                onClick={() => handleSelectCategory('SISWA')}
+                className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  voterCategory === 'SISWA'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:text-slate-950'
+                }`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Pemilih Siswa</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectCategory('GURU')}
+                className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  voterCategory === 'GURU'
+                    ? 'bg-purple-700 text-white shadow-xs'
+                    : 'text-slate-700 hover:text-slate-950'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>Guru / Tendik</span>
+              </button>
+            </div>
+
+            {voterCategory === 'GURU' && (
+              <div className="p-3 bg-purple-50 rounded-2xl border border-purple-200 text-xs text-purple-950 font-medium">
+                <strong>Catatan Khusus Guru & Tendik:</strong> Karena Guru/Tendik tidak memiliki NISN, gunakan <strong>NIP</strong>, <strong>NUPTK</strong>, atau <strong>Kode Guru</strong> sekolah sebagai ID pemilih unik.
+              </div>
+            )}
 
             <form onSubmit={handleAddSubmit} className="space-y-3.5 text-xs sm:text-sm">
               <div>
                 <label className="block font-black text-slate-900 mb-1">
-                  Nomor Induk Siswa Nasional (NISN)
+                  {voterCategory === 'SISWA' ? 'Nomor Induk Siswa Nasional (NISN)' : 'NIP / NUPTK / Kode Guru'}
                 </label>
                 <input
                   type="text"
                   value={nisn}
                   onChange={(e) => setNisn(e.target.value)}
-                  placeholder="Contoh: 0071234567"
+                  placeholder={voterCategory === 'SISWA' ? 'Contoh: 0071234567' : 'Contoh: 198503152010011005 / GURU-01'}
                   className="w-full p-3 rounded-xl border-2 border-slate-300 font-mono font-bold"
                   required
                 />
@@ -413,13 +470,13 @@ export const VoterManager: React.FC = () => {
 
               <div>
                 <label className="block font-black text-slate-900 mb-1">
-                  Nama Lengkap Siswa / Guru
+                  {voterCategory === 'SISWA' ? 'Nama Lengkap Siswa' : 'Nama Lengkap Guru / Tenaga Kependidikan'}
                 </label>
                 <input
                   type="text"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
-                  placeholder="Contoh: Muhammad Farhan"
+                  placeholder={voterCategory === 'SISWA' ? 'Contoh: Muhammad Farhan' : 'Contoh: Dra. Hj. Siti Nurjanah, M.Pd'}
                   className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold"
                   required
                 />
@@ -427,33 +484,53 @@ export const VoterManager: React.FC = () => {
 
               <div>
                 <label className="block font-black text-slate-900 mb-1">
-                  Kelas / Rombongan Belajar
+                  {voterCategory === 'SISWA' ? 'Kelas / Rombel' : 'Jabatan / Satuan Tugas'}
                 </label>
-                <input
-                  type="text"
-                  value={classGrade}
-                  onChange={(e) => setClassGrade(e.target.value)}
-                  placeholder="Contoh: XII TKJ 1 atau Guru & Tendik"
-                  className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold"
-                  required
-                />
+                {voterCategory === 'SISWA' ? (
+                  <input
+                    type="text"
+                    value={classGrade}
+                    onChange={(e) => setClassGrade(e.target.value)}
+                    placeholder="Contoh: XII TKJ 1"
+                    className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold"
+                    required
+                  />
+                ) : (
+                  <select
+                    value={classGrade}
+                    onChange={(e) => setClassGrade(e.target.value)}
+                    className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold text-slate-900"
+                  >
+                    <option value="DEWAN GURU">DEWAN GURU</option>
+                    <option value="TENAGA KEPENDIDIKAN (TENDIK)">TENAGA KEPENDIDIKAN (TENDIK)</option>
+                    <option value="KEPALA SEKOLAH & WAKIL">KEPALA SEKOLAH & WAKIL</option>
+                  </select>
+                )}
               </div>
 
               <div>
                 <label className="block font-black text-slate-900 mb-1.5">
-                  Kompetensi Keahlian (Jurusan)
+                  Kompetensi Keahlian / Kategori
                 </label>
-                <select
-                  value={major}
-                  onChange={(e) => setMajor(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold text-slate-900"
-                >
-                  <option value="Teknik Komputer & Jaringan (TKJ)">Teknik Komputer & Jaringan (TKJ)</option>
-                  <option value="Akuntansi (AKL)">Akuntansi (AKL)</option>
-                  <option value="Otomatisasi Perkantoran (OTKP/MPLB)">Otomatisasi Perkantoran (OTKP/MPLB)</option>
-                  <option value="Pemasaran/Bisnis Daring (BR)">Pemasaran/Bisnis Daring (BR)</option>
-                  <option value="Pendidik / Tenaga Kependidikan">Pendidik / Tenaga Kependidikan</option>
-                </select>
+                {voterCategory === 'SISWA' ? (
+                  <select
+                    value={major}
+                    onChange={(e) => setMajor(e.target.value)}
+                    className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold text-slate-900"
+                  >
+                    <option value="Teknik Komputer & Jaringan (TKJ)">Teknik Komputer & Jaringan (TKJ)</option>
+                    <option value="Akuntansi (AKL)">Akuntansi (AKL)</option>
+                    <option value="Otomatisasi Perkantoran (OTKP/MPLB)">Otomatisasi Perkantoran (OTKP/MPLB)</option>
+                    <option value="Pemasaran/Bisnis Daring (BR)">Pemasaran/Bisnis Daring (BR)</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value="Pendidik / Tenaga Kependidikan"
+                    readOnly
+                    className="w-full p-3 rounded-xl border-2 border-slate-200 bg-slate-100 font-bold text-slate-700 cursor-not-allowed"
+                  />
+                )}
               </div>
 
               <div className="pt-2 flex justify-end gap-2.5 border-t border-slate-200">

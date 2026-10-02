@@ -81,10 +81,10 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
             Bilik Suara Digital (Voter Chamber)
           </span>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-            Masuk ke Bilik Pemilihan Siswa
+            Masuk ke Bilik Suara Digital
           </h1>
           <p className="text-xs sm:text-sm text-blue-100 font-medium mt-1.5 max-w-md mx-auto leading-relaxed">
-            Masukkan Nomor Induk Siswa Nasional (NISN) dan PIN 6-digit rahasia yang tertera pada Kartu Suara Anda
+            Masukkan Nomor Identitas (NISN Siswa / NIP Guru) dan PIN 6-digit rahasia pada Kartu Suara Anda
           </p>
 
           {/* TPS Status badge */}
@@ -107,7 +107,7 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
             }`}
           >
             <KeyRound className="w-4 h-4 text-blue-600" />
-            Input NISN & PIN
+            Input NISN / NIP & PIN
           </button>
           <button
             onClick={() => setActiveTab('qr')}
@@ -136,10 +136,10 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
 
           {activeTab === 'manual' ? (
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* NISN Input */}
+              {/* NISN / NIP Input */}
               <div>
                 <label className="block text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wide mb-2">
-                  Nomor Induk Siswa Nasional (NISN)
+                  Nomor Identitas Pemilih (NISN / NIP)
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
@@ -147,20 +147,16 @@ export const VoterLogin: React.FC<VoterLoginProps> = ({
                   </div>
                   <input
                     type="text"
-                    inputMode="numeric"
-                    maxLength={10}
+                    maxLength={20}
                     value={nisn}
-                    onChange={(e) => setNisn(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Contoh: 0071234561"
-                    className="w-full pl-12 pr-16 py-3.5 rounded-2xl border-2 border-slate-300 focus:outline-hidden focus:ring-3 focus:ring-blue-600 focus:border-blue-600 text-base sm:text-lg font-bold tracking-wider text-slate-950 transition-all placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 bg-slate-50 focus:bg-white"
+                    onChange={(e) => setNisn(e.target.value.trim())}
+                    placeholder="Contoh: 0071234561 (NISN) atau 1985... (NIP)"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-2 border-slate-300 focus:outline-hidden focus:ring-3 focus:ring-blue-600 focus:border-blue-600 text-base sm:text-lg font-bold tracking-wider text-slate-950 transition-all placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 bg-slate-50 focus:bg-white"
                     required
                   />
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center text-xs sm:text-sm font-mono font-bold text-slate-500">
-                    {nisn.length}/10
-                  </div>
                 </div>
                 <p className="text-xs text-slate-600 mt-1.5 font-medium">
-                  10 digit angka resmi yang terdaftar pada DPT Pemilihan SMKS PGRI 1.
+                  Siswa: Masukkan 10 digit NISN • Dewan Guru/Tendik: Masukkan NIP, NUPTK, atau Kode Guru terdaftar.
                 </p>
               </div>
 

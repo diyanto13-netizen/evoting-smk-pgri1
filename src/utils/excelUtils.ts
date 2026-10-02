@@ -21,7 +21,7 @@ export interface ParseExcelResult {
  * Downloads a pre-formatted Excel template (.xlsx) with sample data from SMKS PGRI 1 Sukabumi
  */
 export const downloadVoterExcelTemplate = () => {
-  const templateHeaders = ['NO', 'NISN', 'NAMA_SISWA', 'KELAS', 'JURUSAN', 'PIN_OPSIONAL'];
+  const templateHeaders = ['NO', 'NISN_ATAU_NIP', 'NAMA_PEMILIH', 'KELAS_ATAU_JABATAN', 'JURUSAN', 'PIN_OPSIONAL'];
 
   const sampleData = [
     templateHeaders,
@@ -29,12 +29,12 @@ export const downloadVoterExcelTemplate = () => {
     [2, '0081234002', 'Siti Nurhaliza Azzahra', 'XII AKL 1', 'Akuntansi (AKL)', ''],
     [3, '0081234003', 'Ahmad Rizki Fauzi', 'XI MPLB 2', 'Otomatisasi Perkantoran (OTKP/MPLB)', ''],
     [4, '0081234004', 'Dewi Rahmawati Lestari', 'X BR 1', 'Pemasaran/Bisnis Daring (BR)', ''],
-    [5, '0081234005', 'Budi Santoso, S.Pd.', 'Guru & Tendik', 'Pendidik / Tenaga Kependidikan', ''],
+    [5, '198503152010011005', 'Budi Santoso, S.Pd. (Contoh NIP Guru)', 'DEWAN GURU', 'Pendidik / Tenaga Kependidikan', ''],
     [6, '0081234006', 'Anisa Putri Maharani', 'XI TKJ 2', 'Teknik Komputer & Jaringan (TKJ)', ''],
     [7, '0081234007', 'Fajar Ramadhan', 'X AKL 2', 'Akuntansi (AKL)', ''],
     [8, '0081234008', 'Rina Anggraeni', 'XII MPLB 1', 'Otomatisasi Perkantoran (OTKP/MPLB)', ''],
     [9, '0081234009', 'Yoga Pratama Yudha', 'XI BR 2', 'Pemasaran/Bisnis Daring (BR)', ''],
-    [10, '0081234010', 'Dra. Hj. Sri Wahyuni', 'Guru & Tendik', 'Pendidik / Tenaga Kependidikan', ''],
+    [10, '197204121998022001', 'Dra. Hj. Sri Wahyuni (Contoh NIP Guru)', 'DEWAN GURU', 'Pendidik / Tenaga Kependidikan', ''],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(sampleData);
@@ -42,9 +42,9 @@ export const downloadVoterExcelTemplate = () => {
   // Set column widths
   ws['!cols'] = [
     { wch: 6 },  // NO
-    { wch: 18 }, // NISN
-    { wch: 32 }, // NAMA_SISWA
-    { wch: 18 }, // KELAS
+    { wch: 24 }, // NISN_ATAU_NIP
+    { wch: 38 }, // NAMA_PEMILIH
+    { wch: 22 }, // KELAS_ATAU_JABATAN
     { wch: 40 }, // JURUSAN
     { wch: 18 }, // PIN_OPSIONAL
   ];
@@ -138,9 +138,18 @@ export const parseVotersExcelFile = (file: File): Promise<ParseExcelResult> => {
         // Header detection
         const headerRow = rawRows[0].map((h) => String(h || '').trim().toLowerCase());
 
-        let nisnIdx = headerRow.findIndex((h) => h.includes('nisn') || h.includes('nis') || h.includes('induk'));
-        let nameIdx = headerRow.findIndex((h) => h.includes('nama') || h.includes('siswa') || h.includes('name'));
-        let classIdx = headerRow.findIndex((h) => h.includes('kelas') || h.includes('rombel') || h.includes('class'));
+        let nisnIdx = headerRow.findIndex(
+          (h) =>
+            h.includes('nisn') ||
+            h.includes('nis') ||
+            h.includes('nip') ||
+            h.includes('nuptk') ||
+            h.includes('induk') ||
+            h.includes('id_pemilih') ||
+            h.includes('id')
+        );
+        let nameIdx = headerRow.findIndex((h) => h.includes('nama') || h.includes('siswa') || h.includes('guru') || h.includes('pemilih') || h.includes('name'));
+        let classIdx = headerRow.findIndex((h) => h.includes('kelas') || h.includes('jabatan') || h.includes('rombel') || h.includes('class'));
         let majorIdx = headerRow.findIndex((h) => h.includes('jurusan') || h.includes('prodi') || h.includes('keahlian') || h.includes('major'));
         let pinIdx = headerRow.findIndex((h) => h.includes('pin') || h.includes('token') || h.includes('password'));
 
