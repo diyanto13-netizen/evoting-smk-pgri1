@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Voter, Period } from '../../types/voting';
 import { PemilosLogo } from '../PemilosLogo';
 import { generateVoterQRCode } from '../../utils/qrUtils';
@@ -63,7 +64,7 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
     window.print();
   };
 
-  return (
+  const modalContent = (
     <div className="print-modal-wrapper fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
       {/* Strict A4 Print CSS Styles */}
       <style>{`
@@ -72,6 +73,18 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
             size: A4 portrait !important;
             margin: 0 !important;
           }
+
+          /* CRITICAL: Completely hide main app root & everything behind the modal */
+          #root,
+          body > *:not(#print-root) {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+
           html, body {
             margin: 0 !important;
             padding: 0 !important;
@@ -82,6 +95,17 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             overflow: visible !important;
+          }
+
+          /* Only show the print-root container */
+          #print-root {
+            display: block !important;
+            visibility: visible !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            background: #ffffff !important;
           }
 
           /* Hide modal overlay backdrops, shadows, and screen controls */
@@ -96,6 +120,7 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
             height: auto !important;
             overflow: visible !important;
           }
+
           .print-modal-container {
             position: static !important;
             display: block !important;
@@ -110,12 +135,14 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
             overflow: visible !important;
             border-radius: 0 !important;
           }
+
           .print-scroll-area {
             padding: 0 !important;
             margin: 0 !important;
             background: transparent !important;
             overflow: visible !important;
           }
+
           .print-hidden-element {
             display: none !important;
           }
@@ -143,6 +170,7 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
             box-shadow: none !important;
             border-radius: 0 !important;
           }
+
           .a4-print-sheet:last-of-type {
             page-break-after: auto !important;
             break-after: auto !important;
@@ -166,6 +194,7 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
           .voter-card-item.style-none {
             border: none !important;
           }
+
           .voter-card-item.style-dashed {
             border: 0.5px dashed #94a3b8 !important;
             border-radius: 6px !important;
@@ -188,7 +217,7 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
                 </span>
               </h3>
               <p className="text-xs text-slate-600 font-medium">
-                Tepat {voterPages.length} lembar A4 • Ukuran presisi tanpa terpotong & tanpa garis tepi luar
+                Tepat {voterPages.length} lembar A4 • Halaman website tidak akan ikut tercetak
               </p>
             </div>
           </div>
@@ -243,7 +272,7 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
         {/* Info Notification Bar (Hidden on print) */}
         <div className="print-hidden-element bg-blue-50 border-b border-blue-200 px-4 py-2.5 text-xs text-blue-900 font-medium flex items-center justify-between gap-2">
           <span>
-            💡 <strong>Petunjuk Cetak:</strong> Di jendela cetak (Chrome/Edge), pastikan <strong>Ukuran kertas: A4</strong> dan <strong>Margin: Default</strong>. Hasil cetak akan pas persis <strong>8 kartu per lembar</strong> ({voterPages.length} lembar total).
+            💡 <strong>Petunjuk Cetak:</strong> Di jendela cetak (Chrome/Edge), pastikan <strong>Ukuran kertas: A4</strong> dan <strong>Margin: Default</strong>. Hanya kartu suara yang akan tercetak (tepat {voterPages.length} lembar A4), halaman background web otomatis disembunyikan.
           </span>
           <span className="font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[11px] shrink-0">
             A4: 210 × 297 mm
@@ -363,4 +392,8 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
       </div>
     </div>
   );
+
+  const printRoot = typeof document !== 'undefined' ? document.getElementById('print-root') || document.body : null;
+
+  return printRoot ? createPortal(modalContent, printRoot) : modalContent;
 };
