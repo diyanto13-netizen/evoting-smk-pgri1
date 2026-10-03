@@ -85,16 +85,16 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose, onGoToV
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-200 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-200 ${
         isFullscreen
-          ? 'p-0 bg-slate-950'
+          ? 'p-0 bg-slate-950 w-screen h-screen'
           : 'p-2 sm:p-5 bg-slate-950/80 backdrop-blur-xs'
       }`}
     >
       <div
         className={`bg-white shadow-2xl transition-all duration-200 flex flex-col ${
           isFullscreen
-            ? 'w-full h-full rounded-none border-none max-w-none max-h-none'
+            ? 'w-screen h-screen rounded-none border-none max-w-none max-h-none'
             : 'rounded-3xl max-w-3xl w-full max-h-[92vh] border-2 border-slate-300'
         } overflow-hidden`}
       >
