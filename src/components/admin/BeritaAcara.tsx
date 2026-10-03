@@ -62,24 +62,45 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
         @media print {
           @page {
             size: A4 portrait !important;
-            margin: 12mm 15mm 12mm 15mm !important;
+            margin: 10mm 15mm 10mm 15mm !important;
           }
 
-          /* CRITICAL: Force hide headers, navbars, footers, admin elements & controls */
+          /* CRITICAL: Force hide all elements on page */
+          body * {
+            visibility: hidden !important;
+          }
+
+          /* ONLY show the official Berita Acara document */
+          #berita-acara-print-area,
+          #berita-acara-print-area * {
+            visibility: visible !important;
+          }
+
+          #berita-acara-print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+
+          /* Destroy display of web chrome */
           header,
           nav,
           footer,
-          .print\\:hidden,
+          [class*="print:hidden"],
           .print-hidden,
           #app-navbar,
           #app-footer,
           .admin-header-panel,
           .admin-tab-bar {
             display: none !important;
-            visibility: hidden !important;
             height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
             overflow: hidden !important;
           }
 
@@ -165,7 +186,10 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
       </div>
 
       {/* Official Document Sheet */}
-      <div className="berita-acara-sheet bg-white rounded-2xl border-2 border-slate-300 p-8 sm:p-12 shadow-xl print:shadow-none print:border-none print:p-0 text-slate-950 space-y-5 font-serif">
+      <div
+        id="berita-acara-print-area"
+        className="berita-acara-sheet bg-white rounded-2xl border-2 border-slate-300 p-8 sm:p-12 shadow-xl print:shadow-none print:border-none print:p-0 text-slate-950 space-y-5 font-serif"
+      >
         {/* Kop Surat Resmi dengan Logo Sekolah */}
         <div className="border-b-4 border-double border-slate-950 pb-3 flex items-center gap-4">
           {/* Logo Pemilos / SMKS PGRI 1 */}
