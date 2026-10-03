@@ -4,6 +4,9 @@ interface PemilosLogoProps {
   className?: string;
   withContainer?: boolean;
   containerClassName?: string;
+  width?: number | string;
+  height?: number | string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -15,11 +18,17 @@ export const PemilosLogo: React.FC<PemilosLogoProps> = ({
   className = 'w-10 h-10',
   withContainer = false,
   containerClassName = 'p-1 bg-white rounded-xl shadow-xs border border-slate-200 flex items-center justify-center',
+  width,
+  height,
+  style,
 }) => {
   const svgLogo = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 500 500"
+      width={width}
+      height={height}
+      style={style}
       className={`shrink-0 select-none ${className}`}
       aria-label="Logo Komisi Pemilihan OSIS (PEMILOS)"
       role="img"

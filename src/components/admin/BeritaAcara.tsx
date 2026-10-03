@@ -24,6 +24,11 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
       return;
     }
 
+    // Collect all stylesheets and style tags from current document to ensure 100% design fidelity
+    const pageStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
     // Create an isolated hidden iframe for 100% clean print without ANY external webpage elements
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -48,6 +53,7 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
         <head>
           <meta charset="UTF-8">
           <title>Berita Acara Rekapitulasi Pemilu - SMKS PGRI 1 Kota Sukabumi</title>
+          ${pageStyles}
           <style>
             @page {
               size: A4 portrait;
@@ -63,35 +69,55 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
               margin: 0;
               padding: 0;
               font-size: 10pt;
-              line-height: 1.4;
+              line-height: 1.35;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            table {
-              border-collapse: collapse;
-              width: 100%;
-              font-size: 9pt;
-              margin-top: 6px;
-              margin-bottom: 6px;
-              page-break-inside: avoid;
+            .kop-surat-table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              border: none !important;
+              border-bottom: 3.5px double #000000 !important;
+              margin-bottom: 12px !important;
+              padding-bottom: 6px !important;
             }
-            th, td {
-              border: 1px solid #000000;
-              padding: 4px 6px;
-              color: #000000;
-              text-align: left;
+            .kop-surat-table td {
+              border: none !important;
+              padding: 2px 4px !important;
             }
-            th {
-              background-color: #f1f5f9;
-              font-weight: bold;
+            .kop-logo-cell {
+              width: 85px !important;
+              text-align: center !important;
+              vertical-align: middle !important;
+            }
+            .kop-logo-svg {
+              width: 75px !important;
+              height: 75px !important;
+              max-width: 75px !important;
+              max-height: 75px !important;
+              display: inline-block !important;
+            }
+            table.data-table {
+              border-collapse: collapse !important;
+              width: 100% !important;
+              font-size: 8.5pt !important;
+              margin-top: 4px !important;
+              margin-bottom: 6px !important;
+              page-break-inside: avoid !important;
+            }
+            table.data-table th, table.data-table td {
+              border: 1px solid #000000 !important;
+              padding: 4px 6px !important;
+              color: #000000 !important;
+              text-align: left !important;
+            }
+            table.data-table th {
+              background-color: #f1f5f9 !important;
+              font-weight: bold !important;
             }
             .avoid-break {
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            svg, img {
-              display: inline-block;
-              max-width: 100%;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
             button, .print\\:hidden, .no-print {
               display: none !important;
@@ -292,31 +318,84 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
       {/* Official Document Sheet */}
       <div
         id="berita-acara-print-area"
-        className="berita-acara-sheet bg-white rounded-2xl border-2 border-slate-300 p-8 sm:p-12 shadow-xl print:shadow-none print:border-none print:p-0 text-slate-950 space-y-5 font-serif"
+        className="berita-acara-sheet bg-white rounded-2xl border-2 border-slate-300 p-8 sm:p-10 shadow-xl print:shadow-none print:border-none print:p-0 text-slate-950 space-y-4 font-serif"
       >
-        {/* Kop Surat Resmi dengan Logo Sekolah */}
-        <div className="border-b-4 border-double border-slate-950 pb-3 flex items-center gap-4">
-          {/* Logo Pemilos / SMKS PGRI 1 */}
-          <div className="w-20 h-20 shrink-0 flex items-center justify-center p-1">
-            <PemilosLogo className="w-18 h-18" />
-          </div>
-
-          {/* Kop Teks */}
-          <div className="flex-1 text-center pr-4">
-            <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-900 leading-tight">
-              YAYASAN PEMBINA LEMBAGA PENDIDIKAN PENDIDIKAN DASAR DAN MENENGAH (YPLP DIKDASMEN) PGRI
-            </h4>
-            <h2 className="text-xl sm:text-2xl font-black uppercase text-slate-950 tracking-tight mt-0.5 leading-tight font-sans">
-              SMKS PGRI 1 KOTA SUKABUMI
-            </h2>
-            <p className="text-[10.5px] font-sans font-bold text-slate-800 leading-tight mt-1">
-              KOMPETENSI KEAHLIAN: TEKNIK KOMPUTER & JARINGAN (TKJ) • AKUNTANSI (AKL) • OTOMATISASI PERKANTORAN (OTKP/MPLB) • PEMASARAN/BISNIS DARING (BR)
-            </p>
-            <p className="text-[9.5px] font-sans text-slate-700 leading-tight mt-0.5">
-              Alamat: Jl. Pelabuhan II perum Cipoho Indah, Cikondang, Kec. Citamiang, Kota Sukabumi 43142 • Telp: (0266) 224277 • Email: smkpone@smkspgri1smi.sch.id
-            </p>
-          </div>
-        </div>
+        {/* Kop Surat Resmi dengan Logo Sekolah (Tabel Standar Lembaga/Kemenag/Dinas) */}
+        <table
+          className="kop-surat-table w-full mb-3 border-b-4 border-double border-slate-950 pb-2.5"
+          style={{ width: '100%', borderCollapse: 'collapse', border: 'none', borderBottom: '3.5px double #000' }}
+        >
+          <tbody>
+            <tr>
+              <td
+                className="kop-logo-cell"
+                style={{ width: '85px', textAlign: 'center', verticalAlign: 'middle', padding: '0 10px 4px 0', border: 'none' }}
+              >
+                <PemilosLogo
+                  width={75}
+                  height={75}
+                  style={{ width: '75px', height: '75px', display: 'inline-block' }}
+                  className="kop-logo-svg w-20 h-20"
+                />
+              </td>
+              <td
+                style={{ textAlign: 'center', verticalAlign: 'middle', padding: '0 0 4px 0', border: 'none' }}
+              >
+                <h4
+                  style={{
+                    margin: 0,
+                    fontSize: '10pt',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    color: '#111827',
+                    lineHeight: 1.25,
+                    letterSpacing: '0.02em',
+                    fontFamily: 'Arial, sans-serif',
+                  }}
+                >
+                  YAYASAN PEMBINA LEMBAGA PENDIDIKAN PENDIDIKAN DASAR DAN MENENGAH (YPLP DIKDASMEN) PGRI
+                </h4>
+                <h2
+                  style={{
+                    margin: '2px 0',
+                    fontSize: '15.5pt',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    color: '#030712',
+                    fontFamily: 'Arial, sans-serif',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.15,
+                  }}
+                >
+                  SMKS PGRI 1 KOTA SUKABUMI
+                </h2>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '8pt',
+                    fontWeight: 'bold',
+                    color: '#1f2937',
+                    fontFamily: 'Arial, sans-serif',
+                    lineHeight: 1.25,
+                  }}
+                >
+                  KOMPETENSI KEAHLIAN: TEKNIK KOMPUTER & JARINGAN (TKJ) • AKUNTANSI (AKL) • OTOMATISASI PERKANTORAN (OTKP/MPLB) • PEMASARAN/BISNIS DARING (BR)
+                </p>
+                <p
+                  style={{
+                    margin: '2px 0 0 0',
+                    fontSize: '7.5pt',
+                    color: '#4b5563',
+                    fontFamily: 'Arial, sans-serif',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Alamat: Jl. Pelabuhan II perum Cipoho Indah, Cikondang, Kec. Citamiang, Kota Sukabumi 43142 • Telp: (0266) 224277 • Email: smkpone@smkspgri1smi.sch.id
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Title */}
         <div className="text-center space-y-1 pt-1">
@@ -473,55 +552,53 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
           </ul>
         </div>
 
-        {/* Signatures Section */}
-        <div className="pt-4 font-sans text-xs space-y-6 avoid-break">
-          <div className="flex justify-end text-slate-900 pr-2">
-            <p>
+        {/* Signatures Section (Tanda Tangan Pengesahan Menggunakan Tabel Resmi) */}
+        <div className="pt-3 font-sans text-xs space-y-3 avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <div className="flex justify-end text-slate-900 pr-2 text-right">
+            <p style={{ margin: 0, fontSize: '9.5pt', lineHeight: 1.4 }}>
               Ditetapkan di: <strong>Kota Sukabumi</strong><br />
               Pada tanggal: <strong>{currentDateFormatted}</strong>
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 text-center">
-            {/* Left Column */}
-            <div className="space-y-14">
-              <div>
-                <p className="text-slate-700 font-bold">Waka Bidang Kesiswaan,</p>
-              </div>
-              <div>
-                <strong className="font-bold underline block text-slate-950">
-                  Dadan Ahmad Hamdani, S.Kom.
-                </strong>
-                <span className="text-[10px] text-slate-600 block">NIP. -</span>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-14">
-              <div>
-                <p className="text-slate-700 font-bold">Ketua Panitia Pemilihan (KPU OSIS),</p>
-              </div>
-              <div>
-                <strong className="font-bold underline block text-slate-950">
-                  Dery Cahyadi, S.Pd
-                </strong>
-                <span className="text-[10px] text-slate-600 block">NIP. -</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 text-center space-y-14">
-            <div>
-              <p className="text-slate-700 font-bold">Mengetahui & Menyetujui,</p>
-              <p className="font-black text-slate-950">Kepala SMKS PGRI 1 Kota Sukabumi</p>
-            </div>
-            <div>
-              <strong className="font-black underline block text-sm text-slate-950">
-                Riswan Safari, S.Pd.MM.
-              </strong>
-              <span className="text-[11px] text-slate-700 block">NIP. -</span>
-            </div>
-          </div>
+          <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', textAlign: 'center', marginTop: '8px' }}>
+            <tbody>
+              <tr>
+                <td style={{ width: '50%', border: 'none', verticalAlign: 'top', padding: '0 12px' }}>
+                  <p style={{ margin: '0 0 45px 0', fontWeight: 'bold', color: '#374151', fontSize: '9.5pt' }}>
+                    Waka Bidang Kesiswaan,
+                  </p>
+                  <strong style={{ display: 'block', textDecoration: 'underline', color: '#030712', fontSize: '10pt', fontWeight: 'bold' }}>
+                    Dadan Ahmad Hamdani, S.Kom.
+                  </strong>
+                  <span style={{ fontSize: '9pt', color: '#6b7280', display: 'block' }}>NIP. -</span>
+                </td>
+                <td style={{ width: '50%', border: 'none', verticalAlign: 'top', padding: '0 12px' }}>
+                  <p style={{ margin: '0 0 45px 0', fontWeight: 'bold', color: '#374151', fontSize: '9.5pt' }}>
+                    Ketua Panitia Pemilihan (KPU OSIS),
+                  </p>
+                  <strong style={{ display: 'block', textDecoration: 'underline', color: '#030712', fontSize: '10pt', fontWeight: 'bold' }}>
+                    Dery Cahyadi, S.Pd
+                  </strong>
+                  <span style={{ fontSize: '9pt', color: '#6b7280', display: 'block' }}>NIP. -</span>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} style={{ border: 'none', textAlign: 'center', paddingTop: '18px' }}>
+                  <p style={{ margin: '0 0 2px 0', fontWeight: 'bold', color: '#374151', fontSize: '9.5pt' }}>
+                    Mengetahui & Menyetujui,
+                  </p>
+                  <p style={{ margin: '0 0 45px 0', fontWeight: 900, color: '#030712', fontSize: '10pt' }}>
+                    Kepala SMKS PGRI 1 Kota Sukabumi
+                  </p>
+                  <strong style={{ display: 'block', textDecoration: 'underline', color: '#030712', fontSize: '10.5pt', fontWeight: 900 }}>
+                    Riswan Safari, S.Pd.MM.
+                  </strong>
+                  <span style={{ fontSize: '9pt', color: '#4b5563', display: 'block' }}>NIP. -</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
