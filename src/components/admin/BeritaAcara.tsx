@@ -18,137 +18,7 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
   } = useVoting();
 
   const handlePrint = () => {
-    const printElement = document.getElementById('berita-acara-print-area');
-    if (!printElement) {
-      window.print();
-      return;
-    }
-
-    // Collect all stylesheets and style tags from current document to ensure 100% design fidelity
-    const pageStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((el) => el.outerHTML)
-      .join('\n');
-
-    // Create an isolated hidden iframe for 100% clean print without ANY external webpage elements
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    iframe.setAttribute('title', 'Cetak Berita Acara');
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-      window.print();
-      return;
-    }
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="id">
-        <head>
-          <meta charset="UTF-8">
-          <title>Berita Acara Rekapitulasi Pemilu - SMKS PGRI 1 Kota Sukabumi</title>
-          ${pageStyles}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm 15mm 10mm 15mm;
-            }
-            * {
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Times New Roman', Times, serif;
-              color: #000000;
-              background-color: #ffffff;
-              margin: 0;
-              padding: 0;
-              font-size: 10pt;
-              line-height: 1.35;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            .kop-surat-table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              border: none !important;
-              border-bottom: 3.5px double #000000 !important;
-              margin-bottom: 12px !important;
-              padding-bottom: 6px !important;
-            }
-            .kop-surat-table td {
-              border: none !important;
-              padding: 2px 4px !important;
-            }
-            .kop-logo-cell {
-              width: 85px !important;
-              text-align: center !important;
-              vertical-align: middle !important;
-            }
-            .kop-logo-svg {
-              width: 75px !important;
-              height: 75px !important;
-              max-width: 75px !important;
-              max-height: 75px !important;
-              display: inline-block !important;
-            }
-            table.data-table {
-              border-collapse: collapse !important;
-              width: 100% !important;
-              font-size: 8.5pt !important;
-              margin-top: 4px !important;
-              margin-bottom: 6px !important;
-              page-break-inside: avoid !important;
-            }
-            table.data-table th, table.data-table td {
-              border: 1px solid #000000 !important;
-              padding: 4px 6px !important;
-              color: #000000 !important;
-              text-align: left !important;
-            }
-            table.data-table th {
-              background-color: #f1f5f9 !important;
-              font-weight: bold !important;
-            }
-            .avoid-break {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            button, .print\\:hidden, .no-print {
-              display: none !important;
-            }
-          </style>
-        </head>
-        <body>
-          <div style="width: 100%; margin: 0; padding: 0;">
-            ${printElement.innerHTML}
-          </div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch {
-        window.print();
-      } finally {
-        setTimeout(() => {
-          try {
-            document.body.removeChild(iframe);
-          } catch {
-            // ignore
-          }
-        }, 2000);
-      }
-    }, 400);
+    window.print();
   };
 
   // Calculations
@@ -191,51 +61,23 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
       <style>{`
         @media print {
           @page {
-            size: A4 portrait !important;
-            margin: 10mm 15mm 10mm 15mm !important;
+            size: A4 portrait;
+            margin: 10mm 15mm 10mm 15mm;
           }
 
-          /* CRITICAL: Force hide all elements on page */
-          body * {
-            visibility: hidden !important;
-          }
-
-          /* ONLY show the official Berita Acara document */
-          #berita-acara-print-area,
-          #berita-acara-print-area * {
-            visibility: visible !important;
-          }
-
-          #berita-acara-print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-          }
-
-          /* Destroy display of web chrome */
+          /* Hide all web UI buttons and non-printable elements */
           header,
           nav,
           footer,
+          button,
+          .print\\:hidden,
           [class*="print:hidden"],
-          .print-hidden,
-          #app-navbar,
-          #app-footer,
-          .admin-header-panel,
-          .admin-tab-bar {
+          .no-print {
             display: none !important;
-            height: 0 !important;
-            overflow: hidden !important;
           }
 
           html, body {
-            background: #ffffff !important;
+            background-color: #ffffff !important;
             color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -244,7 +86,16 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
             print-color-adjust: exact !important;
           }
 
-          .berita-acara-sheet {
+          .berita-acara-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+
+          #berita-acara-print-area {
+            display: block !important;
+            position: static !important;
             box-shadow: none !important;
             border: none !important;
             border-radius: 0 !important;
@@ -252,26 +103,22 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
             margin: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
-            font-size: 10pt !important;
-            line-height: 1.4 !important;
-          }
-
-          table {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            font-size: 9pt !important;
-            page-break-inside: avoid !important;
-          }
-
-          th, td {
-            border: 1px solid #000000 !important;
-            padding: 4px 6px !important;
+            background: #ffffff !important;
             color: #000000 !important;
           }
 
-          th {
-            background-color: #f1f5f9 !important;
-            font-weight: bold !important;
+          .kop-surat-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            border: none !important;
+            border-bottom: 3.5px double #000000 !important;
+            margin-bottom: 12px !important;
+            padding-bottom: 6px !important;
+          }
+
+          .kop-surat-table td {
+            border: none !important;
+            padding: 2px 4px !important;
           }
 
           .avoid-break {

@@ -34,12 +34,12 @@
 }
 
 /* ==========================================================================
-   GLOBAL PRINT RULES (A4 PRINT ISOLATION)
+   GLOBAL PRINT RULES (A4 PRINT OPTIMIZATION)
    ========================================================================== */
 @media print {
   @page {
-    size: A4 portrait !important;
-    margin: 10mm 15mm 10mm 15mm !important;
+    size: A4 portrait;
+    margin: 10mm 15mm 10mm 15mm;
   }
 
   /* Force hide all global web chrome: navbar, footer, buttons, admin banners, tabs */
@@ -54,33 +54,27 @@
   #app-navbar,
   #app-footer {
     display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: hidden !important;
-  }
-
-  /* When printing Berita Acara, isolate ONLY #berita-acara-print-area */
-  body:has(#berita-acara-print-area) * {
-    visibility: hidden !important;
-  }
-
-  body:has(#berita-acara-print-area) #berita-acara-print-area,
-  body:has(#berita-acara-print-area) #berita-acara-print-area * {
-    visibility: visible !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   #berita-acara-print-area {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    display: block !important;
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
-    background: #ffffff !important;
+    background: transparent !important;
     color: #000000 !important;
   }
 }
