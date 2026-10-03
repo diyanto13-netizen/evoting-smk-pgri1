@@ -1,6 +1,7 @@
 import React from 'react';
 import { useVoting } from '../../context/VotingContext';
-import { Printer, Download, Award, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { PemilosLogo } from '../PemilosLogo';
+import { Printer, ArrowLeft, FileCheck, CheckCircle2 } from 'lucide-react';
 
 interface BeritaAcaraProps {
   onBack: () => void;
@@ -27,18 +28,22 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
   const participationRate = totalDpt > 0 ? (totalVoted / totalDpt) * 100 : 0;
 
   // OSIS results
-  const osisResults = osisCandidates.map((c) => {
-    const votesCount = osisVotes.filter((v) => v.candidateId === c.id).length;
-    const pct = osisVotes.length > 0 ? (votesCount / osisVotes.length) * 100 : 0;
-    return { ...c, votesCount, pct };
-  }).sort((a, b) => b.votesCount - a.votesCount);
+  const osisResults = osisCandidates
+    .map((c) => {
+      const votesCount = osisVotes.filter((v) => v.candidateId === c.id).length;
+      const pct = osisVotes.length > 0 ? (votesCount / osisVotes.length) * 100 : 0;
+      return { ...c, votesCount, pct };
+    })
+    .sort((a, b) => b.votesCount - a.votesCount);
 
   // MPK results
-  const mpkResults = mpkCandidates.map((c) => {
-    const votesCount = mpkVotes.filter((v) => v.candidateId === c.id).length;
-    const pct = mpkVotes.length > 0 ? (votesCount / mpkVotes.length) * 100 : 0;
-    return { ...c, votesCount, pct };
-  }).sort((a, b) => b.votesCount - a.votesCount);
+  const mpkResults = mpkCandidates
+    .map((c) => {
+      const votesCount = mpkVotes.filter((v) => v.candidateId === c.id).length;
+      const pct = mpkVotes.length > 0 ? (votesCount / mpkVotes.length) * 100 : 0;
+      return { ...c, votesCount, pct };
+    })
+    .sort((a, b) => b.votesCount - a.votesCount);
 
   const winningOsis = osisResults[0];
   const winningMpk = mpkResults[0];
@@ -51,124 +56,218 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
+    <div className="berita-acara-container max-w-4xl mx-auto py-4 px-2 sm:px-4 space-y-4 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+      {/* Embedded Strict Print CSS Styles */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait !important;
+            margin: 12mm 15mm 12mm 15mm !important;
+          }
+
+          /* CRITICAL: Force hide headers, navbars, footers, admin elements & controls */
+          header,
+          nav,
+          footer,
+          .print\\:hidden,
+          .print-hidden,
+          #app-navbar,
+          #app-footer,
+          .admin-header-panel,
+          .admin-tab-bar {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .berita-acara-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            font-size: 10pt !important;
+            line-height: 1.4 !important;
+          }
+
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+            font-size: 9pt !important;
+            page-break-inside: avoid !important;
+          }
+
+          th, td {
+            border: 1px solid #000000 !important;
+            padding: 4px 6px !important;
+            color: #000000 !important;
+          }
+
+          th {
+            background-color: #f1f5f9 !important;
+            font-weight: bold !important;
+          }
+
+          .avoid-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
+
       {/* Top Action Bar (Hidden when printing) */}
-      <div className="print:hidden bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
+      <div className="print:hidden bg-white rounded-2xl p-4 border-2 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <button
           onClick={onBack}
-          className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5"
+          className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-950 flex items-center gap-1.5 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          Kembali ke Dashboard Admin
+          <span>Kembali ke Dashboard Admin</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-black shadow-md shadow-blue-600/30 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            Cetak Berita Acara (A4 / PDF)
+            <span>Cetak Berita Acara (A4 / PDF)</span>
           </button>
         </div>
       </div>
 
+      {/* Print Guidance Note (Hidden when printing) */}
+      <div className="print:hidden bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <FileCheck className="w-4 h-4 text-blue-700 shrink-0" />
+          <span>
+            <strong>Siap Dicetak:</strong> Halaman web, tombol, navbar, dan header admin otomatis disembunyikan saat mencetak. Hanya dokumen resmi Berita Acara yang akan dicetak di kertas A4.
+          </span>
+        </div>
+        <span className="font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[11px] shrink-0">
+          Format: A4 Portrait
+        </span>
+      </div>
+
       {/* Official Document Sheet */}
-      <div className="bg-white rounded-2xl border border-slate-300 p-8 sm:p-12 shadow-md print:shadow-none print:border-none print:p-0 text-slate-900 space-y-6 font-serif">
-        {/* Kop Surat Resmi */}
-        <div className="border-b-4 border-double border-slate-900 pb-4 text-center relative">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-            YAYASAN PEMBINA LEMBAGA PENDIDIKAN PENDIDIKAN DASAR DAN MENENGAH (YPLP DIKDASMEN) PGRI
-          </h4>
-          <h2 className="text-xl sm:text-2xl font-black uppercase text-slate-950 tracking-tight mt-0.5">
-            SMKS PGRI 1 KOTA SUKABUMI
-          </h2>
-          <p className="text-[11px] font-sans font-semibold text-slate-700">
-            KOMPETENSI KEAHLIAN: TEKNIK KOMPUTER & JARINGAN (TKJ) • AKUNTANSI (AKL) • OTOMATISASI PERKANTORAN (OTKP/MPLB) • PEMASARAN/BISNIS DARING (BR)
-          </p>
-          <p className="text-[10px] font-sans text-slate-600 mt-1">
-            Alamat: Jl. Pelabuhan II perum Cipoho Indah, Cikondang, Kec. Citamiang, Kota Sukabumi 43142 • Telp: (0266) 224277 • Email: smkpone@smkspgri1smi.sch.id
-          </p>
+      <div className="berita-acara-sheet bg-white rounded-2xl border-2 border-slate-300 p-8 sm:p-12 shadow-xl print:shadow-none print:border-none print:p-0 text-slate-950 space-y-5 font-serif">
+        {/* Kop Surat Resmi dengan Logo Sekolah */}
+        <div className="border-b-4 border-double border-slate-950 pb-3 flex items-center gap-4">
+          {/* Logo Pemilos / SMKS PGRI 1 */}
+          <div className="w-20 h-20 shrink-0 flex items-center justify-center p-1">
+            <PemilosLogo className="w-18 h-18" />
+          </div>
+
+          {/* Kop Teks */}
+          <div className="flex-1 text-center pr-4">
+            <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-900 leading-tight">
+              YAYASAN PEMBINA LEMBAGA PENDIDIKAN PENDIDIKAN DASAR DAN MENENGAH (YPLP DIKDASMEN) PGRI
+            </h4>
+            <h2 className="text-xl sm:text-2xl font-black uppercase text-slate-950 tracking-tight mt-0.5 leading-tight font-sans">
+              SMKS PGRI 1 KOTA SUKABUMI
+            </h2>
+            <p className="text-[10.5px] font-sans font-bold text-slate-800 leading-tight mt-1">
+              KOMPETENSI KEAHLIAN: TEKNIK KOMPUTER & JARINGAN (TKJ) • AKUNTANSI (AKL) • OTOMATISASI PERKANTORAN (OTKP/MPLB) • PEMASARAN/BISNIS DARING (BR)
+            </p>
+            <p className="text-[9.5px] font-sans text-slate-700 leading-tight mt-0.5">
+              Alamat: Jl. Pelabuhan II perum Cipoho Indah, Cikondang, Kec. Citamiang, Kota Sukabumi 43142 • Telp: (0266) 224277 • Email: smkpone@smkspgri1smi.sch.id
+            </p>
+          </div>
         </div>
 
         {/* Title */}
-        <div className="text-center space-y-1">
-          <h3 className="text-base font-bold underline uppercase tracking-wider">
+        <div className="text-center space-y-1 pt-1">
+          <h3 className="text-base sm:text-lg font-black underline uppercase tracking-wider text-slate-950">
             BERITA ACARA RAPAT PLENO REKAPITULASI HASIL PEMILIHAN UMUM
           </h3>
-          <h4 className="text-sm font-bold uppercase">
+          <h4 className="text-xs sm:text-sm font-bold uppercase text-slate-900">
             KETUA & WAKIL KETUA OSIS SERTA MPK MASA BAKTI {activePeriod?.academicYear || '2026/2027'}
           </h4>
-          <p className="text-xs font-sans text-slate-600 font-mono">
+          <p className="text-xs font-sans text-slate-700 font-mono">
             Nomor: 045.2/KPU-OSIS/SMK-PGRI1/X/{new Date().getFullYear()}
           </p>
         </div>
 
         {/* Introduction */}
-        <div className="text-xs font-sans leading-relaxed text-slate-800 space-y-2">
+        <div className="text-xs sm:text-sm font-sans leading-relaxed text-slate-900 text-justify">
           <p>
-            Pada hari ini, <strong>{currentDateFormatted}</strong>, bertempat di Ruang Aula  SMKS PGRI 1 Kota Sukabumi, telah dilaksanakan Rapat Pleno Terbuka Penetapan Hasil Pemungutan dan Penghitungan Suara Pemilihan Umum Ketua & Wakil Ketua OSIS serta Majelis Permusyawaratan Kelas (MPK) Periode {activePeriod?.academicYear || '2026/2027'} yang diselenggarakan secara digital (e-Voting) berasaskan Langsung, Umum, Bebas, Rahasia, Jujur, dan Adil (LUBER JURDIL).
+            Pada hari ini, <strong>{currentDateFormatted}</strong>, bertempat di Ruang Aula Utama SMKS PGRI 1 Kota Sukabumi, telah dilaksanakan Rapat Pleno Terbuka Penetapan Hasil Pemungutan dan Penghitungan Suara Pemilihan Umum Ketua & Wakil Ketua OSIS serta Majelis Permusyawaratan Kelas (MPK) Periode Masa Bakti <strong>{activePeriod?.academicYear || '2026/2027'}</strong> yang diselenggarakan secara digital (e-Voting) berasaskan Langsung, Umum, Bebas, Rahasia, Jujur, dan Adil (LUBER JURDIL).
           </p>
         </div>
 
         {/* 1. Rekapitulasi Pemilih */}
-        <div className="font-sans space-y-2">
-          <h4 className="text-xs font-bold uppercase text-slate-900 border-b pb-1">
+        <div className="font-sans space-y-1.5 avoid-break">
+          <h4 className="text-xs font-black uppercase text-slate-950 border-b border-slate-400 pb-1">
             I. REKAPITULASI DAFTAR PEMILIH TETAP (DPT) & TINGKAT PARTISIPASI
           </h4>
-          <table className="w-full text-xs border border-slate-400">
+          <table className="w-full text-xs border border-slate-900">
             <tbody>
-              <tr className="border-b border-slate-300">
-                <td className="p-2 font-semibold bg-slate-100 w-2/3">Jumlah Pemilih Terdaftar dalam DPT</td>
-                <td className="p-2 font-mono font-bold text-right">{totalDpt} Siswa</td>
+              <tr className="border-b border-slate-400">
+                <td className="p-2 font-semibold bg-slate-50 w-2/3">Jumlah Pemilih Terdaftar dalam DPT</td>
+                <td className="p-2 font-mono font-bold text-right">{totalDpt} Orang (Siswa & Guru)</td>
               </tr>
-              <tr className="border-b border-slate-300">
-                <td className="p-2 font-semibold bg-slate-100">Jumlah Pemilih yang Menggunakan Hak Suara (Suara Sah)</td>
-                <td className="p-2 font-mono font-bold text-right text-emerald-700">{totalVoted} Suara</td>
+              <tr className="border-b border-slate-400">
+                <td className="p-2 font-semibold bg-slate-50">Jumlah Pemilih yang Menggunakan Hak Suara (Suara Sah Masuk)</td>
+                <td className="p-2 font-mono font-bold text-right text-emerald-800">{totalVoted} Suara</td>
               </tr>
-              <tr className="border-b border-slate-300">
-                <td className="p-2 font-semibold bg-slate-100">Jumlah Pemilih yang Tidak Menggunakan Hak Suara / Golput</td>
-                <td className="p-2 font-mono font-bold text-right text-amber-700">{unvoted} Siswa</td>
+              <tr className="border-b border-slate-400">
+                <td className="p-2 font-semibold bg-slate-50">Jumlah Pemilih yang Tidak Menggunakan Hak Suara / Golput</td>
+                <td className="p-2 font-mono font-bold text-right text-amber-800">{unvoted} Orang</td>
               </tr>
-              <tr className="border-b border-slate-300 bg-slate-50">
-                <td className="p-2 font-bold">Persentase Partisipasi Pemilih</td>
-                <td className="p-2 font-mono font-black text-right text-blue-800">{participationRate.toFixed(2)}%</td>
+              <tr className="border-b border-slate-400 bg-slate-100 font-bold">
+                <td className="p-2">Persentase Partisipasi Pemilih</td>
+                <td className="p-2 font-mono font-black text-right text-blue-900">{participationRate.toFixed(2)}%</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* 2. Hasil Perolehan OSIS */}
-        <div className="font-sans space-y-2">
-          <h4 className="text-xs font-bold uppercase text-slate-900 border-b pb-1">
+        <div className="font-sans space-y-1.5 avoid-break">
+          <h4 className="text-xs font-black uppercase text-slate-950 border-b border-slate-400 pb-1">
             II. HASIL PEROLEHAN SUARA PASANGAN CALON KETUA & WAKIL KETUA OSIS
           </h4>
-          <table className="w-full text-xs border border-slate-400 text-left">
-            <thead className="bg-slate-100 border-b border-slate-400 font-bold">
+          <table className="w-full text-xs border border-slate-900 text-left">
+            <thead className="bg-slate-100 border-b border-slate-900 font-bold">
               <tr>
                 <th className="p-2 text-center w-12">No.</th>
                 <th className="p-2">Pasangan Calon (Ketua & Wakil)</th>
                 <th className="p-2">Kelas Asal</th>
                 <th className="p-2 text-right">Perolehan Suara</th>
                 <th className="p-2 text-right">Persentase</th>
-                <th className="p-2 text-center">Keterangan</th>
+                <th className="p-2 text-center">Status</th>
               </tr>
             </thead>
             <tbody>
               {osisResults.map((cand, idx) => (
                 <tr key={cand.id} className="border-b border-slate-300">
-                  <td className="p-2 text-center font-bold">0{cand.ballotNumber}</td>
-                  <td className="p-2 font-semibold">
+                  <td className="p-2 text-center font-bold font-mono">0{cand.ballotNumber}</td>
+                  <td className="p-2 font-bold text-slate-950">
                     {cand.chairmanName} & {cand.viceChairmanName}
                   </td>
-                  <td className="p-2 text-slate-600">
+                  <td className="p-2 text-slate-700">
                     {cand.chairmanClass} / {cand.viceChairmanClass}
                   </td>
                   <td className="p-2 text-right font-mono font-bold">{cand.votesCount}</td>
                   <td className="p-2 text-right font-mono font-bold">{cand.pct.toFixed(2)}%</td>
                   <td className="p-2 text-center font-bold">
                     {idx === 0 && cand.votesCount > 0 ? (
-                      <span className="text-emerald-700 font-bold">TERPILIH</span>
+                      <span className="text-emerald-800 font-black">TERPILIH</span>
                     ) : (
                       <span className="text-slate-500">-</span>
                     )}
@@ -180,36 +279,36 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
         </div>
 
         {/* 3. Hasil Perolehan MPK */}
-        <div className="font-sans space-y-2">
-          <h4 className="text-xs font-bold uppercase text-slate-900 border-b pb-1">
+        <div className="font-sans space-y-1.5 avoid-break">
+          <h4 className="text-xs font-black uppercase text-slate-950 border-b border-slate-400 pb-1">
             III. HASIL PEROLEHAN SUARA PASANGAN CALON KETUA & WAKIL KETUA MPK
           </h4>
-          <table className="w-full text-xs border border-slate-400 text-left">
-            <thead className="bg-slate-100 border-b border-slate-400 font-bold">
+          <table className="w-full text-xs border border-slate-900 text-left">
+            <thead className="bg-slate-100 border-b border-slate-900 font-bold">
               <tr>
                 <th className="p-2 text-center w-12">No.</th>
                 <th className="p-2">Pasangan Calon (Ketua & Wakil)</th>
                 <th className="p-2">Kelas Asal</th>
                 <th className="p-2 text-right">Perolehan Suara</th>
                 <th className="p-2 text-right">Persentase</th>
-                <th className="p-2 text-center">Keterangan</th>
+                <th className="p-2 text-center">Status</th>
               </tr>
             </thead>
             <tbody>
               {mpkResults.map((cand, idx) => (
                 <tr key={cand.id} className="border-b border-slate-300">
-                  <td className="p-2 text-center font-bold">0{cand.ballotNumber}</td>
-                  <td className="p-2 font-semibold">
+                  <td className="p-2 text-center font-bold font-mono">0{cand.ballotNumber}</td>
+                  <td className="p-2 font-bold text-slate-950">
                     {cand.chairmanName} & {cand.viceChairmanName}
                   </td>
-                  <td className="p-2 text-slate-600">
+                  <td className="p-2 text-slate-700">
                     {cand.chairmanClass} / {cand.viceChairmanClass}
                   </td>
                   <td className="p-2 text-right font-mono font-bold">{cand.votesCount}</td>
                   <td className="p-2 text-right font-mono font-bold">{cand.pct.toFixed(2)}%</td>
                   <td className="p-2 text-center font-bold">
                     {idx === 0 && cand.votesCount > 0 ? (
-                      <span className="text-indigo-700 font-bold">TERPILIH</span>
+                      <span className="text-indigo-800 font-black">TERPILIH</span>
                     ) : (
                       <span className="text-slate-500">-</span>
                     )}
@@ -221,24 +320,24 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
         </div>
 
         {/* Penetapan Pemenang */}
-        <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans space-y-2">
-          <p className="font-bold text-slate-900">
+        <div className="p-3.5 bg-slate-50 border border-slate-400 rounded-xl text-xs font-sans space-y-1.5 avoid-break">
+          <p className="font-black text-slate-950 uppercase">
             IV. KEPUTUSAN PENETAPAN PASANGAN CALON TERPILIH:
           </p>
-          <p className="leading-relaxed">
-            Berdasarkan hasil perolehan suara terbanyak, maka Panitia KPU OSIS menetapkan bahwa:
+          <p className="leading-relaxed text-slate-900">
+            Berdasarkan hasil perolehan suara terbanyak dalam Rapat Pleno, maka Panitia KPU OSIS & MPK menetapkan pasangan calon berikut sebagai Ketua & Wakil Ketua terpilih:
           </p>
-          <ul className="list-disc pl-5 space-y-1 font-semibold">
+          <ul className="list-disc pl-5 space-y-1 font-bold text-slate-900">
             <li>
               Ketua & Wakil Ketua OSIS Terpilih:{' '}
-              <strong className="text-blue-900 underline">
+              <strong className="text-blue-950 underline font-black">
                 {winningOsis ? `${winningOsis.chairmanName} & ${winningOsis.viceChairmanName}` : '-'}
               </strong>{' '}
               (Nomor Urut 0{winningOsis?.ballotNumber})
             </li>
             <li>
               Ketua & Wakil Ketua MPK Terpilih:{' '}
-              <strong className="text-indigo-900 underline">
+              <strong className="text-indigo-950 underline font-black">
                 {winningMpk ? `${winningMpk.chairmanName} & ${winningMpk.viceChairmanName}` : '-'}
               </strong>{' '}
               (Nomor Urut 0{winningMpk?.ballotNumber})
@@ -246,45 +345,53 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
           </ul>
         </div>
 
-        {/* Signatures */}
-        <div className="pt-8 font-sans text-xs space-y-12">
-          <div className="flex justify-between items-center text-slate-800">
-            <div></div>
+        {/* Signatures Section */}
+        <div className="pt-4 font-sans text-xs space-y-6 avoid-break">
+          <div className="flex justify-end text-slate-900 pr-2">
             <p>
-              Ditetapkan di: Kota Sukabumi<br />
-              Pada tanggal: {currentDateFormatted}
+              Ditetapkan di: <strong>Kota Sukabumi</strong><br />
+              Pada tanggal: <strong>{currentDateFormatted}</strong>
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-8 text-center">
             {/* Left Column */}
-            <div className="space-y-16">
+            <div className="space-y-14">
               <div>
-                <p className="text-slate-600 font-semibold">Waka Bidang Kesiswaan,</p>
+                <p className="text-slate-700 font-bold">Waka Bidang Kesiswaan,</p>
               </div>
               <div>
-                <strong className="font-bold underline block">Dadan Ahmad Hamdani, S.Kom.</strong>
+                <strong className="font-bold underline block text-slate-950">
+                  Dadan Ahmad Hamdani, S.Kom.
+                </strong>
+                <span className="text-[10px] text-slate-600 block">NIP. -</span>
               </div>
             </div>
 
             {/* Right Column */}
-            <div className="space-y-16">
+            <div className="space-y-14">
               <div>
-                <p className="text-slate-600 font-semibold">Ketua Panitia Pemilihan (KPU OSIS),</p>
+                <p className="text-slate-700 font-bold">Ketua Panitia Pemilihan (KPU OSIS),</p>
               </div>
               <div>
-                <strong className="font-bold underline block">Dery Cahyadi, S.Pd</strong>
+                <strong className="font-bold underline block text-slate-950">
+                  Dery Cahyadi, S.Pd
+                </strong>
+                <span className="text-[10px] text-slate-600 block">NIP. -</span>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 text-center space-y-16">
+          <div className="pt-2 text-center space-y-14">
             <div>
-              <p className="text-slate-600 font-semibold">Mengetahui & Menyetujui,</p>
-              <p className="font-bold text-slate-900">Kepala SMKS PGRI 1 Kota Sukabumi</p>
+              <p className="text-slate-700 font-bold">Mengetahui & Menyetujui,</p>
+              <p className="font-black text-slate-950">Kepala SMKS PGRI 1 Kota Sukabumi</p>
             </div>
             <div>
-              <strong className="font-bold underline block text-sm">Riswan Safari, S.Pd.MM.</strong>
+              <strong className="font-black underline block text-sm text-slate-950">
+                Riswan Safari, S.Pd.MM.
+              </strong>
+              <span className="text-[11px] text-slate-700 block">NIP. -</span>
             </div>
           </div>
         </div>

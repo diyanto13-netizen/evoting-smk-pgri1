@@ -8,7 +8,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onOpenGuide, onOpenAdmin }) => {
   return (
-    <footer className="bg-slate-950 text-slate-200 pt-12 pb-8 border-t-2 border-slate-800 mt-auto font-sans">
+    <footer className="bg-slate-950 text-slate-200 pt-12 pb-8 border-t-2 border-slate-800 mt-auto font-sans print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-800">
           {/* Column 1: School Identity */}

@@ -96,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-300 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-300 shadow-xs print:hidden">
       {/* Top institutional sub-bar with crisp readable contrast */}
       <div className="bg-slate-900 text-white text-xs py-1.5 px-4 sm:px-8 flex justify-between items-center">
         <div className="flex items-center gap-2 sm:gap-3">

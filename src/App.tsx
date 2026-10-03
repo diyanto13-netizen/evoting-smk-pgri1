@@ -18,7 +18,7 @@ const MainAppContent: React.FC = () => {
   const { currentSession, currentAdmin } = useVoting();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/70 text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-100/70 text-slate-900 font-sans selection:bg-blue-600 selection:text-white print:bg-white print:min-h-0 print:p-0">
       {/* Institutional Top Navbar */}
       <Navbar
         currentView={currentView}
@@ -27,7 +27,7 @@ const MainAppContent: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
         {/* VIEW: HOME */}
         {currentView === 'home' && (
           <PublicHome

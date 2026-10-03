@@ -69,9 +69,9 @@ export const AdminDashboard: React.FC = () => {
   const participationRate = totalDpt > 0 ? (totalVoted / totalDpt) * 100 : 0;
 
   return (
-    <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-6 lg:px-8 space-y-6">
+    <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-6 lg:px-8 space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
       {/* Admin Top Header Banner with High Contrast */}
-      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 shadow-xl border-2 border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-5">
+      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 shadow-xl border-2 border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-5 print:hidden">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg border-2 border-slate-700 shrink-0">
             <PemilosLogo className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-sm" />
@@ -211,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Navigation Submenu Tabs */}
-      <div className="bg-white rounded-2xl p-2 border-2 border-slate-200 shadow-2xs flex overflow-x-auto gap-1.5">
+      <div className="bg-white rounded-2xl p-2 border-2 border-slate-200 shadow-2xs flex overflow-x-auto gap-1.5 print:hidden">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
