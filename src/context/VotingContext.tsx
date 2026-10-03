@@ -569,30 +569,34 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
 
     const voter = voters.find(
-      (v) => v.periodId === activePeriodId && v.nisn === cleanNisn && v.pin === cleanPin
+      (v) =>
+        v.periodId === activePeriodId &&
+        (v.nisn.trim().toLowerCase() === cleanNisn.toLowerCase() ||
+          v.nisn.replace(/[\s.-]/g, '').toLowerCase() === cleanNisn.replace(/[\s.-]/g, '').toLowerCase()) &&
+        v.pin.trim() === cleanPin
     );
 
     if (!voter) {
       addAuditLog(
         'LOGIN_SISWA_GAGAL',
-        `Percobaan login gagal untuk NISN: ${cleanNisn} (NISN atau PIN tidak cocok).`,
+        `Percobaan login gagal untuk ID: ${cleanNisn} (NISN/NIP atau PIN tidak cocok).`,
         'STUDENT'
       );
       return {
         success: false,
-        message: 'NISN atau PIN tidak cocok! Pastikan NISN dan PIN sesuai kartu pemilih.',
+        message: 'Nomor Identitas (NISN Siswa / NIP Guru) atau PIN tidak cocok! Pastikan data sesuai kartu pemilih.',
       };
     }
 
     if (voter.hasVoted) {
       addAuditLog(
         'PERCOBAAN_DOUBLE_VOTE',
-        `NISN ${cleanNisn} (${voter.studentName}) mencoba login kembali padahal sudah memilih pada ${voter.votedAt}.`,
+        `ID ${cleanNisn} (${voter.studentName}) mencoba login kembali padahal sudah memilih pada ${voter.votedAt}.`,
         'STUDENT'
       );
       return {
         success: false,
-        message: `Hak suara atas nama ${voter.studentName} SUDAH DIGUNAKAN pada ${voter.votedAt?.slice(11, 16) || 'hari ini'} WIB. Sistem menerapkan asas 1 siswa 1 suara.`,
+        message: `Hak suara atas nama ${voter.studentName} SUDAH DIGUNAKAN pada ${voter.votedAt?.slice(11, 16) || 'hari ini'} WIB. Sistem menerapkan asas 1 pemilih 1 suara.`,
       };
     }
 
@@ -603,9 +607,15 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     setCurrentSession(session);
+    const isTeacher =
+      voter.major.includes('Pendidik') ||
+      voter.classGrade.includes('GURU') ||
+      voter.classGrade.includes('TENDIK') ||
+      voter.nisn.length > 10;
+
     addAuditLog(
       'MASUK_BILIK_SUARA',
-      `Siswa ${voter.studentName} (${voter.classGrade}) berhasil memasuki bilik suara digital.`,
+      `${isTeacher ? 'Dewan Guru/Tendik' : 'Siswa'} ${voter.studentName} (${voter.classGrade}) berhasil memasuki bilik suara digital.`,
       'STUDENT'
     );
 

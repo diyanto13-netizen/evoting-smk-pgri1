@@ -309,7 +309,7 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
             </div>
             <h4 className="text-lg font-black">Kartu Suara Terverifikasi!</h4>
             <p className="text-xs text-blue-200 mt-1 font-mono">
-              NISN: <strong>{scanDetected.nisn}</strong>
+              ID Pemilih (NISN / NIP): <strong>{scanDetected.nisn}</strong>
             </p>
             <p className="text-xs text-blue-200 font-bold mt-2">
               Membuka bilik suara digital Anda...
@@ -348,7 +348,7 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
           onClick={onSwitchToManual}
           className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-black transition-colors flex items-center gap-1.5 cursor-pointer border border-blue-200"
         >
-          <span>Input Manual (NISN & PIN)</span>
+          <span>Input Manual (NISN / NIP & PIN)</span>
         </button>
       </div>
 
@@ -365,7 +365,7 @@ export const VoterQRScanner: React.FC<VoterQRScannerProps> = ({
       <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950 text-xs text-center flex items-center justify-center gap-2">
         <QrCode className="w-4 h-4 text-blue-700 shrink-0" />
         <span>
-          QR Code pada Kartu Suara mencakup data <strong>NISN</strong> dan <strong>PIN 6 Digit</strong> secara otomatis tanpa perlu mengetik manual.
+          QR Code pada Kartu Suara mencakup data <strong>NISN Siswa / NIP Guru</strong> dan <strong>PIN 6 Digit</strong> secara otomatis tanpa perlu mengetik manual.
         </span>
       </div>
     </div>

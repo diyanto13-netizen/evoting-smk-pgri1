@@ -295,95 +295,109 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
 
                 {/* Exact A4 Sheet Container */}
                 <div className="a4-print-sheet bg-white shadow-xl print:shadow-none mx-auto">
-                  {pageVoters.map((voter) => (
-                    <div
-                      key={voter.id}
-                      className={`voter-card-item ${
-                        borderStyle === 'dashed'
-                          ? 'style-dashed border border-dashed border-slate-400 rounded-lg'
-                          : 'style-none border-none'
-                      } flex flex-col justify-between text-slate-900 bg-white`}
-                    >
-                      {/* 1. Header (Logo, School Name, Badge) */}
-                      <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
-                        <PemilosLogo className="w-7 h-7 shrink-0 drop-shadow-2xs" />
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-[10px] font-black uppercase text-slate-950 leading-tight tracking-tight truncate">
-                            SMKS PGRI 1 KOTA SUKABUMI
-                          </h4>
-                          <p className="text-[8px] font-black text-blue-900 uppercase tracking-wider truncate">
-                            KOMISI PEMILIHAN OSIS & MPK • {period?.academicYear || '2026/2027'}
-                          </p>
-                        </div>
-                        <span className="text-[7.5px] font-black uppercase tracking-wider bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300 shrink-0">
-                          KARTU SUARA
-                        </span>
-                      </div>
+                  {pageVoters.map((voter) => {
+                    const isGuru =
+                      voter.major.includes('Pendidik') ||
+                      voter.classGrade.includes('GURU') ||
+                      voter.classGrade.includes('TENDIK') ||
+                      voter.nisn.length > 10;
 
-                      {/* 2. Body Details & QR Code */}
-                      <div className="py-1 flex items-center gap-2 flex-1">
-                        <div className="flex-1 min-w-0 space-y-0.5 text-xs">
-                          <div>
-                            <span className="text-slate-400 block text-[7.5px] uppercase font-black leading-none">
-                              Nama Lengkap:
-                            </span>
-                            <strong className="text-slate-950 font-black text-[11px] block truncate leading-snug">
-                              {voter.studentName}
-                            </strong>
+                    return (
+                      <div
+                        key={voter.id}
+                        className={`voter-card-item ${
+                          borderStyle === 'dashed'
+                            ? 'style-dashed border border-dashed border-slate-400 rounded-lg'
+                            : 'style-none border-none'
+                        } flex flex-col justify-between text-slate-900 bg-white`}
+                      >
+                        {/* 1. Header (Logo, School Name, Badge) */}
+                        <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
+                          <PemilosLogo className="w-7 h-7 shrink-0 drop-shadow-2xs" />
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-[10px] font-black uppercase text-slate-950 leading-tight tracking-tight truncate">
+                              SMKS PGRI 1 KOTA SUKABUMI
+                            </h4>
+                            <p className="text-[8px] font-black text-blue-900 uppercase tracking-wider truncate">
+                              KOMISI PEMILIHAN OSIS & MPK • {period?.academicYear || '2026/2027'}
+                            </p>
                           </div>
+                          <span
+                            className={`text-[7.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                              isGuru
+                                ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                : 'bg-slate-100 text-slate-800 border-slate-300'
+                            }`}
+                          >
+                            {isGuru ? 'KARTU GURU' : 'KARTU SUARA'}
+                          </span>
+                        </div>
 
-                          <div className="flex items-center gap-2.5 pt-0.5">
+                        {/* 2. Body Details & QR Code */}
+                        <div className="py-1 flex items-center gap-2 flex-1">
+                          <div className="flex-1 min-w-0 space-y-0.5 text-xs">
                             <div>
                               <span className="text-slate-400 block text-[7.5px] uppercase font-black leading-none">
-                                NISN:
+                                Nama Lengkap:
                               </span>
-                              <span className="font-mono font-black text-slate-900 text-[9.5px]">
-                                {voter.nisn}
-                              </span>
+                              <strong className="text-slate-950 font-black text-[11px] block truncate leading-snug">
+                                {voter.studentName}
+                              </strong>
                             </div>
-                            <div>
+
+                            <div className="flex items-center gap-2.5 pt-0.5">
+                              <div>
+                                <span className="text-slate-400 block text-[7.5px] uppercase font-black leading-none">
+                                  {isGuru ? 'NIP / ID:' : 'NISN:'}
+                                </span>
+                                <span className="font-mono font-black text-slate-900 text-[9.5px]">
+                                  {voter.nisn}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block text-[7.5px] uppercase font-black leading-none">
+                                  {isGuru ? 'Tugas/Kelas:' : 'Kelas:'}
+                                </span>
+                                <span className="font-black text-slate-900 text-[9.5px]">
+                                  {voter.classGrade}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="pt-0.5">
                               <span className="text-slate-400 block text-[7.5px] uppercase font-black leading-none">
-                                Kelas:
+                                {isGuru ? 'Kategori:' : 'Komp. Keahlian:'}
                               </span>
-                              <span className="font-black text-slate-900 text-[9.5px]">
-                                {voter.classGrade}
+                              <span className="text-slate-800 text-[8.5px] font-bold block truncate leading-tight">
+                                {voter.major}
                               </span>
                             </div>
                           </div>
 
-                          <div className="pt-0.5">
-                            <span className="text-slate-400 block text-[7.5px] uppercase font-black leading-none">
-                              Komp. Keahlian:
-                            </span>
-                            <span className="text-slate-800 text-[8.5px] font-bold block truncate leading-tight">
-                              {voter.major}
-                            </span>
+                          {/* QR Code & PIN Code Box */}
+                          <div className="shrink-0 flex flex-col items-center justify-center pl-1.5 border-l border-slate-200 w-[66px]">
+                            <div className="w-11 h-11 bg-white rounded border border-slate-300 flex items-center justify-center p-0.5 overflow-hidden">
+                              <VoterCardQR nisn={voter.nisn} pin={voter.pin} />
+                            </div>
+                            <div className="mt-1 w-full bg-blue-50/90 border border-blue-200 rounded px-1 py-0.5 text-center">
+                              <span className="text-[7px] font-black text-blue-900 block leading-none">
+                                PIN RAHASIA:
+                              </span>
+                              <span className="text-[10px] font-mono font-black text-blue-800 tracking-wider leading-tight block">
+                                {voter.pin}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* QR Code & PIN Code Box */}
-                        <div className="shrink-0 flex flex-col items-center justify-center pl-1.5 border-l border-slate-200 w-[66px]">
-                          <div className="w-11 h-11 bg-white rounded border border-slate-300 flex items-center justify-center p-0.5 overflow-hidden">
-                            <VoterCardQR nisn={voter.nisn} pin={voter.pin} />
-                          </div>
-                          <div className="mt-1 w-full bg-blue-50/90 border border-blue-200 rounded px-1 py-0.5 text-center">
-                            <span className="text-[7px] font-black text-blue-900 block leading-none">
-                              PIN RAHASIA:
-                            </span>
-                            <span className="text-[10px] font-mono font-black text-blue-800 tracking-wider leading-tight block">
-                              {voter.pin}
-                            </span>
-                          </div>
+                        {/* 3. Footer */}
+                        <div className="pt-1 border-t border-dashed border-slate-200 flex items-center justify-between text-[7.5px] text-slate-500 font-semibold leading-none">
+                          <span>* Rahasiakan PIN • 1 Kali Nyoblos</span>
+                          <span className="font-black text-slate-700">PANITIA KPU PGRI 1</span>
                         </div>
                       </div>
-
-                      {/* 3. Footer */}
-                      <div className="pt-1 border-t border-dashed border-slate-200 flex items-center justify-between text-[7.5px] text-slate-500 font-semibold leading-none">
-                        <span>* Rahasiakan PIN • 1 Kali Nyoblos</span>
-                        <span className="font-black text-slate-700">PANITIA KPU PGRI 1</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}

@@ -6,12 +6,16 @@ export interface DecodedVoterQR {
 }
 
 /**
- * Generate a high quality QR Code DataURL for a voter card
+ * Generate a high quality QR Code DataURL for a voter card (Student or Teacher)
  */
 export async function generateVoterQRCode(nisn: string, pin: string): Promise<string> {
+  const cleanId = String(nisn || '').trim();
+  const cleanPin = String(pin || '').trim();
+
   const payload = JSON.stringify({
-    nisn,
-    pin,
+    nisn: cleanId,
+    nip: cleanId,
+    pin: cleanPin,
     app: 'pemilos-smkspgri1',
   });
 
@@ -19,7 +23,7 @@ export async function generateVoterQRCode(nisn: string, pin: string): Promise<st
     return await QRCode.toDataURL(payload, {
       errorCorrectionLevel: 'M',
       margin: 1,
-      width: 180,
+      width: 200,
       color: {
         dark: '#0f172a',
         light: '#ffffff',
@@ -33,36 +37,40 @@ export async function generateVoterQRCode(nisn: string, pin: string): Promise<st
 
 /**
  * Safely parse QR code content scanned from a camera or image
+ * Fully supports:
+ * - 10-digit NISN for students
+ * - 18-digit NIP or 16-digit NUPTK for teachers/staff
+ * - Alphanumeric teacher IDs (e.g. GURU-01, TENDIK-02)
  */
 export function parseVoterQR(rawText: string): DecodedVoterQR | null {
   if (!rawText) return null;
   const clean = rawText.trim();
 
-  // 1. Try JSON
+  // 1. Try JSON parsing
   try {
     const parsed = JSON.parse(clean);
     if (parsed && typeof parsed === 'object') {
-      const nisn = String(parsed.nisn || '').trim();
-      const pin = String(parsed.pin || '').trim();
-      if (/^\d{10}$/.test(nisn) && /^\d{6}$/.test(pin)) {
-        return { nisn, pin };
+      const rawId = String(parsed.nisn || parsed.nip || parsed.nuptk || parsed.id || '').trim();
+      const rawPin = String(parsed.pin || '').trim();
+      if (rawId.length >= 3 && /^\d{6}$/.test(rawPin)) {
+        return { nisn: rawId, pin: rawPin };
       }
     }
   } catch {
-    // Not json, continue
+    // Not valid JSON, continue to string pattern matching
   }
 
-  // 2. Try URI format: ?nisn=...&pin=...
-  const nisnMatch = clean.match(/nisn[=:]\s*(\d{10})/i);
+  // 2. Try URI format: ?nisn=...&pin=... or ?nip=...&pin=...
+  const idMatch = clean.match(/(?:nisn|nip|nuptk|id|pemilih)[=:]\s*([a-zA-Z0-9_.-]{3,30})/i);
   const pinMatch = clean.match(/pin[=:]\s*(\d{6})/i);
-  if (nisnMatch && pinMatch) {
-    return { nisn: nisnMatch[1], pin: pinMatch[1] };
+  if (idMatch && pinMatch) {
+    return { nisn: idMatch[1].trim(), pin: pinMatch[1].trim() };
   }
 
-  // 3. Try delimited format (e.g. 0071234561:123456 or 0071234561,123456)
-  const delimitedMatch = clean.match(/(\d{10})[\s,:|/-]+(\d{6})/);
+  // 3. Try delimited format (e.g. EVOTE:198503152010011005:123456 or 198503152010011005,123456)
+  const delimitedMatch = clean.match(/(?:EVOTE[:\s]+)?([a-zA-Z0-9_.-]{3,30})[\s,:|/-]+(\d{6})/i);
   if (delimitedMatch) {
-    return { nisn: delimitedMatch[1], pin: delimitedMatch[2] };
+    return { nisn: delimitedMatch[1].trim(), pin: delimitedMatch[2].trim() };
   }
 
   return null;
