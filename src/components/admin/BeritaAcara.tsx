@@ -18,7 +18,111 @@ export const BeritaAcara: React.FC<BeritaAcaraProps> = ({ onBack }) => {
   } = useVoting();
 
   const handlePrint = () => {
-    window.print();
+    const printElement = document.getElementById('berita-acara-print-area');
+    if (!printElement) {
+      window.print();
+      return;
+    }
+
+    // Create an isolated hidden iframe for 100% clean print without ANY external webpage elements
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.setAttribute('title', 'Cetak Berita Acara');
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="id">
+        <head>
+          <meta charset="UTF-8">
+          <title>Berita Acara Rekapitulasi Pemilu - SMKS PGRI 1 Kota Sukabumi</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 15mm 10mm 15mm;
+            }
+            * {
+              box-sizing: border-box;
+            }
+            body {
+              font-family: 'Times New Roman', Times, serif;
+              color: #000000;
+              background-color: #ffffff;
+              margin: 0;
+              padding: 0;
+              font-size: 10pt;
+              line-height: 1.4;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            table {
+              border-collapse: collapse;
+              width: 100%;
+              font-size: 9pt;
+              margin-top: 6px;
+              margin-bottom: 6px;
+              page-break-inside: avoid;
+            }
+            th, td {
+              border: 1px solid #000000;
+              padding: 4px 6px;
+              color: #000000;
+              text-align: left;
+            }
+            th {
+              background-color: #f1f5f9;
+              font-weight: bold;
+            }
+            .avoid-break {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            svg, img {
+              display: inline-block;
+              max-width: 100%;
+            }
+            button, .print\\:hidden, .no-print {
+              display: none !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div style="width: 100%; margin: 0; padding: 0;">
+            ${printElement.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+        window.print();
+      } finally {
+        setTimeout(() => {
+          try {
+            document.body.removeChild(iframe);
+          } catch {
+            // ignore
+          }
+        }, 2000);
+      }
+    }, 400);
   };
 
   // Calculations

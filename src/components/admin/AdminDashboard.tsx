@@ -68,246 +68,251 @@ export const AdminDashboard: React.FC = () => {
   const unvoted = totalDpt - totalVoted;
   const participationRate = totalDpt > 0 ? (totalVoted / totalDpt) * 100 : 0;
 
+  // Early return for Berita Acara to ensure 100% clean document view without any dashboard headers or tabs in DOM
+  if (activeTab === 'report') {
+    return (
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-6 lg:px-8 space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+        <BeritaAcara onBack={() => setActiveTab('overview')} />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto py-4 sm:py-6 px-2 sm:px-6 lg:px-8 space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
       {/* Admin Top Header Banner with High Contrast */}
       <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 shadow-xl border-2 border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-5 print:hidden">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg border-2 border-slate-700 shrink-0">
-            <PemilosLogo className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-sm" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-xs font-black uppercase tracking-wider text-amber-300 bg-amber-950 px-3 py-1 rounded-md border border-amber-600/50">
-                {currentAdmin?.role === 'SUPER_ADMIN' ? 'SUPER ADMINISTRATOR' : 'OPERATOR TPS RESMI'}
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg border-2 border-slate-700 shrink-0">
+                <PemilosLogo className="w-12 h-12 sm:w-14 sm:h-14 drop-shadow-sm" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-300 bg-amber-950 px-3 py-1 rounded-md border border-amber-600/50">
+                    {currentAdmin?.role === 'SUPER_ADMIN' ? 'SUPER ADMINISTRATOR' : 'OPERATOR TPS RESMI'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowFirebaseModal(true)}
+                    className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md border flex items-center gap-1.5 cursor-pointer transition-colors ${
+                      isFirebaseEnabled
+                        ? 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 hover:bg-emerald-900'
+                        : 'text-amber-300 bg-amber-950/80 border-amber-500/50 hover:bg-amber-900'
+                    }`}
+                    title="Status koneksi database Firebase (Klik untuk membuka pengaturan ON/OFF)"
+                  >
+                    {isFirebaseEnabled ? (
+                      <>
+                        <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                        <Cloud className="w-3.5 h-3.5" />
+                        Cloud Firestore Online
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <CloudOff className="w-3.5 h-3.5" />
+                        Mode Uji Coba (Sandbox)
+                      </>
+                    )}
+                  </button>
+                  <span className="text-xs sm:text-sm text-slate-300 font-bold">
+                    Periode Aktif: <strong>{activePeriod?.academicYear || '2026/2027'}</strong>
+                  </span>
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black mt-1.5 text-white">
+                  {currentAdmin?.fullName}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 font-medium">
+                  {currentAdmin?.title || 'Panitia Pemilihan OSIS & MPK SMKS PGRI 1 Sukabumi'}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick TPS Status Toggles */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* TPS Status */}
+              <div className="bg-slate-900 p-1.5 rounded-2xl border-2 border-slate-800 flex items-center gap-1">
+                <span className="text-xs text-slate-300 px-2.5 font-bold">Bilik Suara:</span>
+                {(['OPEN', 'PAUSED', 'CLOSED'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => activePeriod && updatePeriodStatus(activePeriod.id, st)}
+                    className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                      activePeriod?.status === st
+                        ? st === 'OPEN'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : st === 'PAUSED'
+                          ? 'bg-amber-500 text-white shadow-sm'
+                          : 'bg-rose-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {st === 'OPEN' ? 'Buka' : st === 'PAUSED' ? 'Jeda' : 'Tutup'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Firebase Connection Toggle Button */}
               <button
-                type="button"
                 onClick={() => setShowFirebaseModal(true)}
-                className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md border flex items-center gap-1.5 cursor-pointer transition-colors ${
+                className={`px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-1.5 border-2 transition-all cursor-pointer shadow-xs ${
                   isFirebaseEnabled
-                    ? 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 hover:bg-emerald-900'
-                    : 'text-amber-300 bg-amber-950/80 border-amber-500/50 hover:bg-amber-900'
+                    ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/80 hover:bg-emerald-900'
+                    : 'bg-amber-950/90 text-amber-200 border-amber-500/80 hover:bg-amber-900'
                 }`}
-                title="Status koneksi database Firebase (Klik untuk membuka pengaturan ON/OFF)"
+                title="Pengaturan Mode Database Cloud Firebase (ON / OFF)"
               >
                 {isFirebaseEnabled ? (
                   <>
-                    <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-                    <Cloud className="w-3.5 h-3.5" />
-                    Cloud Firestore Online
+                    <Cloud className="w-4 h-4 text-emerald-400 animate-pulse" />
+                    <span>Cloud DB: ON</span>
                   </>
                 ) : (
                   <>
-                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                    <CloudOff className="w-3.5 h-3.5" />
-                    Mode Uji Coba (Sandbox)
+                    <CloudOff className="w-4 h-4 text-amber-400" />
+                    <span>Uji Coba: OFF</span>
                   </>
                 )}
               </button>
-              <span className="text-xs sm:text-sm text-slate-300 font-bold">
-                Periode Aktif: <strong>{activePeriod?.academicYear || '2026/2027'}</strong>
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black mt-1.5 text-white">
-              {currentAdmin?.fullName}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium">
-              {currentAdmin?.title || 'Panitia Pemilihan OSIS & MPK SMKS PGRI 1 Sukabumi'}
-            </p>
-          </div>
-        </div>
 
-        {/* Quick TPS Status Toggles */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* TPS Status */}
-          <div className="bg-slate-900 p-1.5 rounded-2xl border-2 border-slate-800 flex items-center gap-1">
-            <span className="text-xs text-slate-300 px-2.5 font-bold">Bilik Suara:</span>
-            {(['OPEN', 'PAUSED', 'CLOSED'] as const).map((st) => (
+              {/* Quick Count Freeze/Publish */}
+              {activePeriod && (
+                <button
+                  onClick={() => toggleResultPublished(activePeriod.id, !activePeriod.isResultPublished)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 transition-colors cursor-pointer ${
+                    activePeriod.isResultPublished
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
+                      : 'bg-amber-500 text-white hover:bg-amber-600 shadow-xs'
+                  }`}
+                >
+                  {activePeriod.isResultPublished ? (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      Quick Count Publik
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Quick Count Terkunci
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Reset Suara Paslon Button */}
               <button
-                key={st}
-                onClick={() => activePeriod && updatePeriodStatus(activePeriod.id, st)}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
-                  activePeriod?.status === st
-                    ? st === 'OPEN'
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : st === 'PAUSED'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-rose-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                onClick={() => setShowResetVotesModal(true)}
+                className="px-3.5 py-2.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border-2 border-rose-500/50 rounded-2xl text-xs sm:text-sm font-black transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Kosongkan atau reset perolehan suara pasangan calon"
               >
-                {st === 'OPEN' ? 'Buka' : st === 'PAUSED' ? 'Jeda' : 'Tutup'}
+                <RotateCcw className="w-4 h-4 text-rose-400" />
+                <span>Reset Suara Paslon</span>
               </button>
-            ))}
+
+              {/* Logout */}
+              <button
+                onClick={logoutAdmin}
+                className="p-2.5 text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border-2 border-slate-800 rounded-2xl transition-colors cursor-pointer"
+                title="Keluar Admin"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          {/* Firebase Connection Toggle Button */}
-          <button
-            onClick={() => setShowFirebaseModal(true)}
-            className={`px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-1.5 border-2 transition-all cursor-pointer shadow-xs ${
-              isFirebaseEnabled
-                ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/80 hover:bg-emerald-900'
-                : 'bg-amber-950/90 text-amber-200 border-amber-500/80 hover:bg-amber-900'
-            }`}
-            title="Pengaturan Mode Database Cloud Firebase (ON / OFF)"
-          >
-            {isFirebaseEnabled ? (
-              <>
-                <Cloud className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span>Cloud DB: ON</span>
-              </>
-            ) : (
-              <>
-                <CloudOff className="w-4 h-4 text-amber-400" />
-                <span>Uji Coba: OFF</span>
-              </>
-            )}
-          </button>
-
-          {/* Quick Count Freeze/Publish */}
-          {activePeriod && (
+          {/* Navigation Submenu Tabs */}
+          <div className="bg-white rounded-2xl p-2 border-2 border-slate-200 shadow-2xs flex overflow-x-auto gap-1.5 print:hidden">
             <button
-              onClick={() => toggleResultPublished(activePeriod.id, !activePeriod.isResultPublished)}
-              className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 transition-colors cursor-pointer ${
-                activePeriod.isResultPublished
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
-                  : 'bg-amber-500 text-white hover:bg-amber-600 shadow-xs'
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'overview'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
               }`}
             >
-              {activePeriod.isResultPublished ? (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Quick Count Publik
-                </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  Quick Count Terkunci
-                </>
-              )}
+              <LayoutDashboard className="w-4 h-4" />
+              Ringkasan & Kontrol
             </button>
-          )}
 
-          {/* Reset Suara Paslon Button */}
-          <button
-            onClick={() => setShowResetVotesModal(true)}
-            className="px-3.5 py-2.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border-2 border-rose-500/50 rounded-2xl text-xs sm:text-sm font-black transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-            title="Kosongkan atau reset perolehan suara pasangan calon"
-          >
-            <RotateCcw className="w-4 h-4 text-rose-400" />
-            <span>Reset Suara Paslon</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('voters')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'voters'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Daftar DPT & PIN ({totalDpt})
+            </button>
 
-          {/* Logout */}
-          <button
-            onClick={logoutAdmin}
-            className="p-2.5 text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border-2 border-slate-800 rounded-2xl transition-colors cursor-pointer"
-            title="Keluar Admin"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+            <button
+              onClick={() => setActiveTab('candidates')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'candidates'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <Vote className="w-4 h-4" />
+              Paslon OSIS & MPK
+            </button>
 
-      {/* Navigation Submenu Tabs */}
-      <div className="bg-white rounded-2xl p-2 border-2 border-slate-200 shadow-2xs flex overflow-x-auto gap-1.5 print:hidden">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'overview'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <LayoutDashboard className="w-4 h-4" />
-          Ringkasan & Kontrol
-        </button>
+            <button
+              onClick={() => setActiveTab('periods')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'periods'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              Periode / Tahun Ajaran
+            </button>
 
-        <button
-          onClick={() => setActiveTab('voters')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'voters'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          Daftar DPT & PIN ({totalDpt})
-        </button>
+            <button
+              onClick={() => setActiveTab('timeline')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'timeline'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <CalendarClock className="w-4 h-4" />
+              Jadwal Tahapan Pemilu
+            </button>
 
-        <button
-          onClick={() => setActiveTab('candidates')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'candidates'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <Vote className="w-4 h-4" />
-          Paslon OSIS & MPK
-        </button>
+            <button
+              onClick={() => setActiveTab('report')}
+              className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+            >
+              <FileText className="w-4 h-4" />
+              Cetak Berita Acara
+            </button>
 
-        <button
-          onClick={() => setActiveTab('periods')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'periods'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <Calendar className="w-4 h-4" />
-          Periode / Tahun Ajaran
-        </button>
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'logs'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Audit Log
+            </button>
 
-        <button
-          onClick={() => setActiveTab('timeline')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'timeline'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <CalendarClock className="w-4 h-4" />
-          Jadwal Tahapan Pemilu
-        </button>
-
-        <button
-          onClick={() => setActiveTab('report')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'report'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          Cetak Berita Acara
-        </button>
-
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'logs'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          Audit Log
-        </button>
-
-        <button
-          onClick={() => setActiveTab('security')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'security'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
-          }`}
-        >
-          <KeyRound className="w-4 h-4 text-amber-500" />
-          Pengaturan Password & Akun
-        </button>
-      </div>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                activeTab === 'security'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <KeyRound className="w-4 h-4 text-amber-500" />
+              Pengaturan Password & Akun
+            </button>
+          </div>
 
       {/* TAB CONTENT: OVERVIEW */}
       {activeTab === 'overview' && (
@@ -569,11 +574,6 @@ export const AdminDashboard: React.FC = () => {
 
       {/* TAB CONTENT: TIMELINE */}
       {activeTab === 'timeline' && <TimelineManager />}
-
-      {/* TAB CONTENT: REPORT */}
-      {activeTab === 'report' && (
-        <BeritaAcara onBack={() => setActiveTab('overview')} />
-      )}
 
       {/* TAB CONTENT: LOGS */}
       {activeTab === 'logs' && <AuditLogViewer />}
