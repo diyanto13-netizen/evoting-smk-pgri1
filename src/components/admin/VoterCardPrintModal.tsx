@@ -26,8 +26,8 @@ const VoterCardQR: React.FC<{ nisn: string; pin: string }> = ({ nisn, pin }) => 
 
   if (!qrUrl) {
     return (
-      <div className="w-11 h-11 bg-slate-100 rounded-md flex items-center justify-center animate-pulse">
-        <QrCode className="w-6 h-6 text-slate-400" />
+      <div className="w-[33mm] h-[33mm] bg-slate-100 rounded-md flex items-center justify-center animate-pulse">
+        <QrCode className="w-10 h-10 text-slate-400" />
       </div>
     );
   }
@@ -36,7 +36,8 @@ const VoterCardQR: React.FC<{ nisn: string; pin: string }> = ({ nisn, pin }) => 
     <img
       src={qrUrl}
       alt={`QR Code ${nisn}`}
-      className="w-11 h-11 object-contain rounded-xs"
+      className="w-[33mm] h-[33mm] object-contain rounded-xs"
+      style={{ imageRendering: '-webkit-optimize-contrast' }}
       loading="eager"
     />
   );
@@ -68,6 +69,39 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
     <div className="print-modal-wrapper fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
       {/* Strict A4 Print CSS Styles */}
       <style>{`
+        /* Exact A4 Sheet Grid Layout on Screen Preview */
+        .a4-print-sheet {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 0 auto;
+          padding: 9mm 9mm;
+          box-sizing: border-box;
+          display: grid;
+          grid-template-columns: 92mm 92mm;
+          grid-template-rows: repeat(4, 65mm);
+          gap: 4mm 8mm;
+          background: #ffffff;
+        }
+
+        .voter-card-item {
+          width: 92mm;
+          height: 65mm;
+          padding: 7px 9px;
+          box-sizing: border-box;
+          overflow: hidden;
+          background: #ffffff;
+        }
+
+        .voter-card-item.style-none {
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+        }
+
+        .voter-card-item.style-dashed {
+          border: 1px dashed #94a3b8;
+          border-radius: 6px;
+        }
+
         @media print {
           @page {
             size: A4 portrait !important;
@@ -374,9 +408,9 @@ export const VoterCardPrintModal: React.FC<VoterCardPrintModalProps> = ({
                             </div>
                           </div>
 
-                          {/* QR Code & PIN Code Box */}
-                          <div className="shrink-0 flex flex-col items-center justify-center pl-1.5 border-l border-slate-200 w-[66px]">
-                            <div className="w-11 h-11 bg-white rounded border border-slate-300 flex items-center justify-center p-0.5 overflow-hidden">
+                          {/* QR Code & PIN Code Box (Ukuran 3x Lebih Besar & Tampilan HD) */}
+                          <div className="shrink-0 flex flex-col items-center justify-center pl-2 border-l border-slate-200 w-[36mm]">
+                            <div className="w-[33mm] h-[33mm] bg-white rounded border border-slate-300 flex items-center justify-center p-0.5 overflow-hidden shadow-2xs">
                               <VoterCardQR nisn={voter.nisn} pin={voter.pin} />
                             </div>
                             <div className="mt-1 w-full bg-blue-50/90 border border-blue-200 rounded px-1 py-0.5 text-center">

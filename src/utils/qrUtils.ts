@@ -21,11 +21,11 @@ export async function generateVoterQRCode(nisn: string, pin: string): Promise<st
 
   try {
     return await QRCode.toDataURL(payload, {
-      errorCorrectionLevel: 'M',
+      errorCorrectionLevel: 'H',
       margin: 1,
-      width: 200,
+      width: 600,
       color: {
-        dark: '#0f172a',
+        dark: '#020617',
         light: '#ffffff',
       },
     });
