@@ -139,7 +139,7 @@ export async function updateFirestoreDoc(
   const path = `${collectionName}/${docId}`;
   try {
     const docRef = doc(db, collectionName, docId);
-    await updateDoc(docRef, fields);
+    await setDoc(docRef, fields as WithFieldValue<DocumentData>, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }

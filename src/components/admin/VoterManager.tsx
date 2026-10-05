@@ -39,6 +39,8 @@ export const VoterManager: React.FC = () => {
     batchGeneratePins,
     resetVoterStatus,
     resetAllVotersStatus,
+    deleteVoter,
+    deleteMultipleVoters,
   } = useVoting();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,6 +49,11 @@ export const VoterManager: React.FC = () => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // Delete & Multi-selection states
+  const [selectedVoterIds, setSelectedVoterIds] = useState<string[]>([]);
+  const [voterToDelete, setVoterToDelete] = useState<any>(null);
+  const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
 
   // Single add form
   const [voterCategory, setVoterCategory] = useState<'SISWA' | 'GURU'>('SISWA');
@@ -95,6 +102,42 @@ export const VoterManager: React.FC = () => {
       return matchSearch && matchMajor && matchStatus;
     });
   }, [activeVoters, searchQuery, filterMajor, filterStatus]);
+
+  const displayedVoters = useMemo(() => filteredVoters.slice(0, 100), [filteredVoters]);
+
+  const isAllSelected =
+    displayedVoters.length > 0 &&
+    displayedVoters.every((v) => selectedVoterIds.includes(v.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      const displayedIds = new Set(displayedVoters.map((v) => v.id));
+      setSelectedVoterIds((prev) => prev.filter((id) => !displayedIds.has(id)));
+    } else {
+      const combined = new Set([...selectedVoterIds, ...displayedVoters.map((v) => v.id)]);
+      setSelectedVoterIds(Array.from(combined));
+    }
+  };
+
+  const handleToggleSelectVoter = (id: string) => {
+    setSelectedVoterIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmSingleDelete = () => {
+    if (!voterToDelete) return;
+    deleteVoter(voterToDelete.id);
+    setSelectedVoterIds((prev) => prev.filter((id) => id !== voterToDelete.id));
+    setVoterToDelete(null);
+  };
+
+  const handleConfirmBatchDelete = () => {
+    if (selectedVoterIds.length === 0) return;
+    deleteMultipleVoters(selectedVoterIds);
+    setSelectedVoterIds([]);
+    setShowBatchDeleteModal(false);
+  };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,11 +357,47 @@ export const VoterManager: React.FC = () => {
         </div>
       </div>
 
+      {/* Selected Voters Batch Action Bar */}
+      {selectedVoterIds.length > 0 && (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
+              {selectedVoterIds.length}
+            </span>
+            <div>
+              <span className="text-xs sm:text-sm font-black text-rose-950 block">
+                {selectedVoterIds.length} siswa DPT dipilih untuk dihapus
+              </span>
+              <span className="text-[11px] text-rose-700 font-semibold block">
+                Gunakan untuk menghapus siswa yang keluar / pindah sekolah
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedVoterIds([])}
+              className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            >
+              Batal Pilih
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBatchDeleteModal(true)}
+              className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Hapus {selectedVoterIds.length} DPT Terpilih</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table with High Contrast & Legible Typography */}
       <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b-2 border-slate-200 flex justify-between items-center text-xs sm:text-sm">
           <span className="font-extrabold text-slate-900">
-            Menampilkan {filteredVoters.length} dari {activeVoters.length} Pemilih Terdaftar
+            Menampilkan {displayedVoters.length} dari {filteredVoters.length} Pemilih Terdaftar (Total DPT: {activeVoters.length})
           </span>
           <button
             onClick={() => {
@@ -337,7 +416,16 @@ export const VoterManager: React.FC = () => {
           <table className="w-full text-xs sm:text-sm text-left">
             <thead className="bg-slate-100 text-slate-800 font-black border-b-2 border-slate-200 uppercase tracking-wider text-xs">
               <tr>
-                <th className="p-3.5 pl-5">No.</th>
+                <th className="p-3.5 pl-4 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                    title="Pilih semua siswa di halaman ini"
+                  />
+                </th>
+                <th className="p-3.5">No.</th>
                 <th className="p-3.5">NISN / NIP</th>
                 <th className="p-3.5">Nama Pemilih</th>
                 <th className="p-3.5">Kelas & Jurusan</th>
@@ -347,52 +435,80 @@ export const VoterManager: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {filteredVoters.slice(0, 100).map((voter, index) => (
-                <tr key={voter.id} className="hover:bg-blue-50/50 transition-colors font-medium">
-                  <td className="p-3.5 pl-5 text-slate-600 font-mono font-bold">{index + 1}</td>
-                  <td className="p-3.5 font-mono font-black text-slate-950 text-xs sm:text-sm">{voter.nisn}</td>
-                  <td className="p-3.5 font-extrabold text-slate-950">{voter.studentName}</td>
-                  <td className="p-3.5">
-                    <span className="font-black text-slate-900">{voter.classGrade}</span>
-                    <span className="block text-xs text-slate-600 truncate max-w-xs font-semibold">
-                      {voter.major}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-center">
-                    <span className="font-mono font-black text-blue-900 bg-blue-100 px-2.5 py-1 rounded-md border border-blue-300">
-                      {voter.pin}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-center">
-                    {voter.hasVoted ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        Sudah Memilih
+              {displayedVoters.map((voter, index) => {
+                const isChecked = selectedVoterIds.includes(voter.id);
+                return (
+                  <tr
+                    key={voter.id}
+                    className={`transition-colors font-medium ${
+                      isChecked ? 'bg-rose-50/60' : 'hover:bg-blue-50/50'
+                    }`}
+                  >
+                    <td className="p-3.5 pl-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSelectVoter(voter.id)}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                      />
+                    </td>
+                    <td className="p-3.5 text-slate-600 font-mono font-bold">{index + 1}</td>
+                    <td className="p-3.5 font-mono font-black text-slate-950 text-xs sm:text-sm">{voter.nisn}</td>
+                    <td className="p-3.5 font-extrabold text-slate-950">{voter.studentName}</td>
+                    <td className="p-3.5">
+                      <span className="font-black text-slate-900">{voter.classGrade}</span>
+                      <span className="block text-xs text-slate-600 truncate max-w-xs font-semibold">
+                        {voter.major}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
-                        <Clock className="w-3.5 h-3.5 text-amber-600" />
-                        Belum Memilih
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <span className="font-mono font-black text-blue-900 bg-blue-100 px-2.5 py-1 rounded-md border border-blue-300">
+                        {voter.pin}
                       </span>
-                    )}
-                  </td>
-                  <td className="p-3.5 text-right pr-5">
-                    {voter.hasVoted && (
-                      <button
-                        onClick={() => resetVoterStatus(voter.id)}
-                        className="text-xs text-blue-700 hover:text-blue-900 font-bold underline cursor-pointer"
-                        title="Kembalikan status belum memilih jika terjadi kesalahan teknis"
-                      >
-                        Reset Status
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="p-3.5 text-center">
+                      {voter.hasVoted ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Sudah Memilih
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
+                          Belum Memilih
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3.5 text-right pr-5">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {voter.hasVoted && (
+                          <button
+                            type="button"
+                            onClick={() => resetVoterStatus(voter.id)}
+                            className="text-xs text-blue-700 hover:text-blue-900 font-bold underline cursor-pointer px-1.5 py-1"
+                            title="Kembalikan status belum memilih jika terjadi kesalahan teknis"
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setVoterToDelete(voter)}
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 rounded-lg text-xs font-black transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Hapus pemilih ini dari DPT (siswa keluar/pindah)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {filteredVoters.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
+                  <td colSpan={8} className="p-8 text-center text-slate-500 font-medium">
                     Tidak ada data pemilih yang sesuai dengan pencarian atau filter.
                   </td>
                 </tr>
@@ -793,6 +909,159 @@ export const VoterManager: React.FC = () => {
                     ? `Proses & Masukkan ${parsedVoters.length} Siswa ke DPT`
                     : 'Pilih File Excel Dahulu'}
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Single DPT (Siswa Keluar / Pindah) */}
+      {voterToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border-2 border-slate-300 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-300 shadow-2xs shrink-0">
+                  <Trash2 className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-950 text-base sm:text-lg leading-tight">
+                    Hapus Pemilih dari DPT?
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                    Hapus siswa yang keluar / pindah sekolah
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVoterToDelete(null)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Voter Card Details */}
+            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 space-y-2 text-xs sm:text-sm">
+              <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-slate-500 font-bold">Nama Pemilih:</span>
+                <span className="font-black text-slate-950 text-right">{voterToDelete.studentName}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-slate-500 font-bold">NISN / NIP:</span>
+                <span className="font-mono font-black text-slate-900">{voterToDelete.nisn}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-slate-500 font-bold">Kelas:</span>
+                <span className="font-black text-slate-900">{voterToDelete.classGrade}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-slate-500 font-bold">Komp. Keahlian:</span>
+                <span className="font-bold text-slate-800 text-right truncate max-w-[200px]">{voterToDelete.major}</span>
+              </div>
+              <div className="flex justify-between items-center pt-0.5">
+                <span className="text-slate-500 font-bold">Status Suara:</span>
+                <span className={`px-2.5 py-0.5 rounded-full font-black text-xs border ${
+                  voterToDelete.hasVoted
+                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    : 'bg-amber-100 text-amber-900 border-amber-300'
+                }`}>
+                  {voterToDelete.hasVoted ? 'Sudah Memilih' : 'Belum Memilih'}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900 leading-relaxed font-medium">
+              ⚠️ <strong>Perhatian:</strong> Pemilih ini akan dihapus secara permanen dari daftar DPT sekolah dan Cloud Firestore. Kartu suara dan PIN miliknya tidak dapat digunakan lagi.
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setVoterToDelete(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm cursor-pointer transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSingleDelete}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus Pemilih</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Massal DPT Terpilih */}
+      {showBatchDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border-2 border-slate-300 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-300 shadow-2xs shrink-0">
+                  <Trash2 className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-950 text-base sm:text-lg leading-tight">
+                    Hapus {selectedVoterIds.length} Siswa Terpilih?
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                    Hapus massal siswa keluar / pindah dari DPT
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBatchDeleteModal(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-xs text-rose-900 leading-relaxed font-medium">
+              ⚠️ <strong>Peringatan Hapus Massal:</strong> Anda akan menghapus <strong>{selectedVoterIds.length} siswa terpilih</strong> sekaligus dari Daftar Pemilih Tetap (DPT). Data yang dihapus akan disinkronkan ke Cloud Firestore secara otomatis.
+            </div>
+
+            <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50 p-2 text-xs">
+              {activeVoters
+                .filter((v) => selectedVoterIds.includes(v.id))
+                .slice(0, 15)
+                .map((v, i) => (
+                  <div key={v.id} className="py-1 px-2 flex justify-between items-center">
+                    <span className="font-extrabold text-slate-900 truncate max-w-[200px]">
+                      {i + 1}. {v.studentName}
+                    </span>
+                    <span className="text-slate-500 font-mono font-bold">{v.classGrade}</span>
+                  </div>
+                ))}
+              {selectedVoterIds.length > 15 && (
+                <div className="text-center py-1 text-slate-500 font-bold italic">
+                  + {selectedVoterIds.length - 15} siswa lainnya...
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBatchDeleteModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm cursor-pointer transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBatchDelete}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus {selectedVoterIds.length} Siswa</span>
               </button>
             </div>
           </div>

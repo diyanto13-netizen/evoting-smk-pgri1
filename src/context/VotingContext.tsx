@@ -76,6 +76,8 @@ interface VotingContextType {
   batchGeneratePins: () => number;
   resetVoterStatus: (voterId: string) => void;
   resetAllVotersStatus: () => void;
+  deleteVoter: (voterId: string) => void;
+  deleteMultipleVoters: (voterIds: string[]) => void;
 
   // Votes
   votes: Vote[];
@@ -967,10 +969,22 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const updateCandidate = (id: string, updates: Partial<Candidate>) => {
+    let updatedCandidate: Candidate | undefined;
     setCandidates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
+      prev.map((c) => {
+        if (c.id === id) {
+          updatedCandidate = { ...c, ...updates };
+          return updatedCandidate;
+        }
+        return c;
+      })
     );
-    syncToCloud(() => updateFirestoreDoc(COLLECTIONS.CANDIDATES, id, updates));
+    if (updatedCandidate) {
+      const full = updatedCandidate;
+      syncToCloud(() => setFirestoreDoc(COLLECTIONS.CANDIDATES, id, full));
+    } else {
+      syncToCloud(() => updateFirestoreDoc(COLLECTIONS.CANDIDATES, id, updates));
+    }
     addAuditLog('UPDATE_KANDIDAT', `Data paslon ID: ${id} telah diperbarui.`, 'ADMIN');
   };
 
@@ -1104,6 +1118,32 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     addAuditLog('RESET_KOTAK_SUARA', `Seluruh kotak suara periode ${activePeriod?.academicYear} dikosongkan dan status DPT direset.`, 'ADMIN');
+  };
+
+  const deleteVoter = (voterId: string) => {
+    const target = voters.find((v) => v.id === voterId);
+    setVoters((prev) => prev.filter((v) => v.id !== voterId));
+    syncToCloud(() => deleteFirestoreDoc(COLLECTIONS.VOTERS, voterId));
+    if (target) {
+      addAuditLog(
+        'HAPUS_DPT',
+        `Data pemilih "${target.studentName}" (NISN: ${target.nisn}, Kelas: ${target.classGrade}) telah dihapus dari DPT.`,
+        'ADMIN'
+      );
+    }
+  };
+
+  const deleteMultipleVoters = (voterIds: string[]) => {
+    if (voterIds.length === 0) return;
+    const idSet = new Set(voterIds);
+    const count = idSet.size;
+    setVoters((prev) => prev.filter((v) => !idSet.has(v.id)));
+    syncToCloud(() => batchDeleteFirestoreDocs(COLLECTIONS.VOTERS, voterIds));
+    addAuditLog(
+      'HAPUS_DPT_MASSAL',
+      `Sebanyak ${count} data pemilih (siswa keluar / pindah) telah dihapus dari DPT.`,
+      'ADMIN'
+    );
   };
 
   const resetCandidateVotes = (candidateId: string): number => {
@@ -1357,6 +1397,8 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         batchGeneratePins,
         resetVoterStatus,
         resetAllVotersStatus,
+        deleteVoter,
+        deleteMultipleVoters,
         votes,
         activeVotes,
         osisVotes,
