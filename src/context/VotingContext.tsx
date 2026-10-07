@@ -90,7 +90,7 @@ interface VotingContextType {
 
   // Voting action
   currentSession: StudentSession | null;
-  loginVoter: (nisn: string, pin: string) => { success: boolean; message: string; voter?: Voter };
+  loginVoter: (tokenOrNisn: string, pin?: string) => { success: boolean; message: string; voter?: Voter };
   logoutVoter: () => void;
   castVote: (osisCandidateId: string, mpkCandidateId: string) => CastVoteResult;
 
@@ -583,14 +583,10 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     syncToCloud(() => setFirestoreDoc(COLLECTIONS.AUDIT_LOGS, newLog.id, newLog));
   };
 
-  // Voter Login
-  const loginVoter = (nisn: string, pin: string) => {
-    const cleanNisn = nisn.trim();
-    const cleanPin = pin.trim();
-
-    if (!cleanNisn || !cleanPin) {
-      return { success: false, message: 'Harap isi NISN dan PIN 6-digit secara lengkap.' };
-    }
+  // Voter Login (Supports: 6-Digit Token Only, or NISN + PIN)
+  const loginVoter = (param1: string, param2?: string) => {
+    const val1 = String(param1 || '').trim();
+    const val2 = String(param2 || '').trim();
 
     if (!activePeriod) {
       return { success: false, message: 'Tidak ada periode pemilihan yang aktif saat ini.' };
@@ -604,35 +600,54 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return { success: false, message: 'Bilik suara TPS sedang DIJEDA sementara untuk istirahat/rekap.' };
     }
 
-    const voter = voters.find(
-      (v) =>
-        v.periodId === activePeriodId &&
-        (v.nisn.trim().toLowerCase() === cleanNisn.toLowerCase() ||
-          v.nisn.replace(/[\s.-]/g, '').toLowerCase() === cleanNisn.replace(/[\s.-]/g, '').toLowerCase()) &&
-        v.pin.trim() === cleanPin
-    );
+    let voter: Voter | undefined;
+
+    // Mode A: Called with 2 params (e.g. from QR scanner or dual input NISN + PIN)
+    if (val1 && val2) {
+      voter = voters.find(
+        (v) =>
+          v.periodId === activePeriodId &&
+          (v.nisn.trim().toLowerCase() === val1.toLowerCase() ||
+            v.nisn.replace(/[\s.-]/g, '').toLowerCase() === val1.replace(/[\s.-]/g, '').toLowerCase()) &&
+          v.pin.trim() === val2
+      );
+      // Fallback: If NISN has format mismatch but PIN is a valid 6-digit, match by PIN directly
+      if (!voter && /^\d{6}$/.test(val2)) {
+        voter = voters.find((v) => v.periodId === activePeriodId && v.pin.trim() === val2);
+      }
+    }
+    // Mode B: Fast 6-Digit Token / PIN Login
+    else if (val1) {
+      const cleanToken = val1.replace(/\D/g, '');
+      if (cleanToken.length !== 6) {
+        return { success: false, message: 'Token PIN bilik suara harus terdiri dari 6 digit angka.' };
+      }
+      voter = voters.find((v) => v.periodId === activePeriodId && v.pin.trim() === cleanToken);
+    } else {
+      return { success: false, message: 'Harap masukkan 6 digit token / PIN bilik suara Anda.' };
+    }
 
     if (!voter) {
       addAuditLog(
         'LOGIN_SISWA_GAGAL',
-        `Percobaan login gagal untuk ID: ${cleanNisn} (NISN/NIP atau PIN tidak cocok).`,
+        `Percobaan login bilik suara gagal dengan token: ${val2 || val1} (Token PIN tidak terdaftar pada DPT).`,
         'STUDENT'
       );
       return {
         success: false,
-        message: 'Nomor Identitas (NISN Siswa / NIP Guru) atau PIN tidak cocok! Pastikan data sesuai kartu pemilih.',
+        message: 'Token PIN 6-digit tidak terdaftar di DPT! Pastikan kode sesuai kartu suara pemilih Anda.',
       };
     }
 
     if (voter.hasVoted) {
       addAuditLog(
         'PERCOBAAN_DOUBLE_VOTE',
-        `ID ${cleanNisn} (${voter.studentName}) mencoba login kembali padahal sudah memilih pada ${voter.votedAt}.`,
+        `Pemilih ${voter.studentName} (NISN: ${voter.nisn}) mencoba login kembali padahal sudah memilih pada ${voter.votedAt}.`,
         'STUDENT'
       );
       return {
         success: false,
-        message: `Hak suara atas nama ${voter.studentName} SUDAH DIGUNAKAN pada ${voter.votedAt?.slice(11, 16) || 'hari ini'} WIB. Sistem menerapkan asas 1 pemilih 1 suara.`,
+        message: `Hak suara atas nama ${voter.studentName} (${voter.classGrade}) SUDAH DIGUNAKAN pada ${voter.votedAt?.slice(11, 16) || 'hari ini'} WIB. Sistem menerapkan asas 1 pemilih 1 kali suara.`,
       };
     }
 
