@@ -73,11 +73,13 @@ const MainAppContent: React.FC = () => {
         }}
       />
 
-      {/* Footer */}
-      <Footer
-        onOpenGuide={() => setIsGuideOpen(true)}
-        onOpenAdmin={() => setCurrentView('admin')}
-      />
+      {/* Footer (Disembunyikan pada halaman bilik suara digital agar tampilan bersih, fokus, dan bebas gangguan) */}
+      {currentView !== 'vote' && (
+        <Footer
+          onOpenGuide={() => setIsGuideOpen(true)}
+          onOpenAdmin={() => setCurrentView('admin')}
+        />
+      )}
     </div>
   );
 };
