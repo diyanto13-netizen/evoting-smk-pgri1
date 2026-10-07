@@ -97,7 +97,7 @@ interface VotingContextType {
   // Admin & Password Settings
   admins: AdminUser[];
   currentAdmin: AdminUser | null;
-  loginAdmin: (username: string, pass: string) => { success: boolean; message: string };
+  loginAdmin: (username: string, pass: string) => Promise<{ success: boolean; message: string }>;
   logoutAdmin: () => void;
   updateAdminPassword: (
     adminId: string,
@@ -314,16 +314,17 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       await batchSetFirestoreDocs(COLLECTIONS.VOTERS, voters);
       await batchSetFirestoreDocs(COLLECTIONS.VOTES, votes);
       await batchSetFirestoreDocs(COLLECTIONS.TIMELINE_STEPS, timelineSteps);
+      await batchSetFirestoreDocs(COLLECTIONS.ADMINS, admins);
       await batchSetFirestoreDocs(COLLECTIONS.AUDIT_LOGS, auditLogs.slice(0, 50));
 
       addAuditLog(
         'SYNC_LOKAL_KE_CLOUD',
-        `Data lokal berhasil diunggah ke Firebase Cloud: ${periods.length} periode, ${candidates.length} paslon, ${voters.length} DPT, dan ${votes.length} suara.`,
+        `Data lokal berhasil diunggah ke Firebase Cloud: ${periods.length} periode, ${candidates.length} paslon, ${voters.length} DPT, ${admins.length} admin, dan ${votes.length} suara.`,
         'ADMIN'
       );
       return {
         success: true,
-        message: `Berhasil mengunggah ${candidates.length} paslon, ${voters.length} DPT, dan ${votes.length} suara ke Cloud Firestore.`,
+        message: `Berhasil mengunggah ${candidates.length} paslon, ${voters.length} DPT, ${admins.length} akun admin, dan ${votes.length} suara ke Cloud Firestore.`,
       };
     } catch (err) {
       console.error('Failed to sync data to Firebase:', err);
@@ -337,12 +338,13 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Explicit manual download of Firestore remote data to local state
   const fetchRemoteDataFromFirebase = async (): Promise<{ success: boolean; message: string }> => {
     try {
-      const [remotePeriods, remoteCandidates, remoteVoters, remoteVotes, remoteSteps] = await Promise.all([
+      const [remotePeriods, remoteCandidates, remoteVoters, remoteVotes, remoteSteps, remoteAdmins] = await Promise.all([
         fetchAllFirestoreDocs<Period>(COLLECTIONS.PERIODS),
         fetchAllFirestoreDocs<Candidate>(COLLECTIONS.CANDIDATES),
         fetchAllFirestoreDocs<Voter>(COLLECTIONS.VOTERS),
         fetchAllFirestoreDocs<Vote>(COLLECTIONS.VOTES),
         fetchAllFirestoreDocs<TimelineStep>(COLLECTIONS.TIMELINE_STEPS),
+        fetchAllFirestoreDocs<AdminUser>(COLLECTIONS.ADMINS),
       ]);
 
       if (remotePeriods.length > 0) setPeriods(remotePeriods);
@@ -350,15 +352,23 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (remoteVoters.length > 0) setVoters(remoteVoters);
       setVotes(remoteVotes || []);
       if (remoteSteps.length > 0) setTimelineSteps(remoteSteps);
+      if (remoteAdmins && remoteAdmins.length > 0) {
+        setAdmins(remoteAdmins);
+        try {
+          localStorage.setItem(STORAGE_KEYS.ADMINS, JSON.stringify(remoteAdmins));
+        } catch (e) {
+          console.warn('Failed to save admins in local storage:', e);
+        }
+      }
 
       addAuditLog(
         'FETCH_CLOUD_KE_LOKAL',
-        `Berhasil mengunduh data terbaru dari Firebase Cloud: ${remoteCandidates.length} paslon, ${remoteVoters.length} DPT, dan ${remoteVotes.length} suara.`,
+        `Berhasil mengunduh data terbaru dari Firebase Cloud: ${remoteCandidates.length} paslon, ${remoteVoters.length} DPT, ${remoteAdmins.length} akun admin, dan ${remoteVotes.length} suara.`,
         'ADMIN'
       );
       return {
         success: true,
-        message: `Berhasil memuat ${remoteCandidates.length} paslon, ${remoteVoters.length} DPT, dan ${remoteVotes.length} suara dari Cloud Firestore.`,
+        message: `Berhasil memuat ${remoteCandidates.length} paslon, ${remoteVoters.length} DPT, ${remoteAdmins.length} akun admin, dan ${remoteVotes.length} suara dari Cloud Firestore.`,
       };
     } catch (err) {
       console.error('Failed to fetch data from Firebase:', err);
@@ -385,7 +395,8 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           DEFAULT_PERIODS,
           DEFAULT_CANDIDATES,
           INITIAL_VOTERS,
-          DEFAULT_TIMELINE_STEPS
+          DEFAULT_TIMELINE_STEPS,
+          INITIAL_ADMINS
         );
 
         if (!isMounted) return;
@@ -437,7 +448,30 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           }
         );
 
-        unsubs = [unsubPeriods, unsubCandidates, unsubVoters, unsubVotes, unsubAudit, unsubTimeline];
+        // 7. Admin Users & Passwords (REAL-TIME MULTI-DEVICE SYNC)
+        const unsubAdmins = subscribeCollection<AdminUser>(
+          COLLECTIONS.ADMINS,
+          (data) => {
+            if (data && data.length > 0) {
+              setAdmins(data);
+              try {
+                localStorage.setItem(STORAGE_KEYS.ADMINS, JSON.stringify(data));
+              } catch (e) {
+                console.warn('Failed to update admins in local storage:', e);
+              }
+            }
+          }
+        );
+
+        unsubs = [
+          unsubPeriods,
+          unsubCandidates,
+          unsubVoters,
+          unsubVotes,
+          unsubAudit,
+          unsubTimeline,
+          unsubAdmins,
+        ];
         setIsFirebaseConnected(true);
       } catch (err) {
         console.warn('Firebase synchronization notice:', err);
@@ -720,22 +754,52 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   };
 
-  // Admin Login
-  const loginAdmin = (username: string, pass: string) => {
+  // Admin Login (supports instant local check & async Firestore fallback for multi-device sync)
+  const loginAdmin = async (username: string, pass: string): Promise<{ success: boolean; message: string }> => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = pass.trim();
 
-    const matchedAdmin =
-      admins.find((a) => a.username.toLowerCase() === cleanUser) ||
+    let currentList = admins;
+
+    let matchedAdmin =
+      currentList.find((a) => a.username.toLowerCase() === cleanUser) ||
       INITIAL_ADMINS.find((a) => a.username.toLowerCase() === cleanUser);
 
-    const expectedPassword = matchedAdmin?.password || 'admin123';
+    let expectedPassword = matchedAdmin?.password || 'admin123';
 
     // Strict authentication: matches configured password or factory default if not yet changed
-    const isAuthValid = Boolean(
+    let isAuthValid = Boolean(
       matchedAdmin &&
         (cleanPass === expectedPassword || (expectedPassword === 'admin123' && cleanPass === 'pgri1sukabumi'))
     );
+
+    // If local verification failed but Cloud Firestore is enabled, fetch latest remote admins
+    // to handle the scenario where the password was updated on another device just seconds ago!
+    if (!isAuthValid && isFirebaseEnabled) {
+      try {
+        const remoteAdmins = await fetchAllFirestoreDocs<AdminUser>(COLLECTIONS.ADMINS);
+        if (remoteAdmins && remoteAdmins.length > 0) {
+          setAdmins(remoteAdmins);
+          try {
+            localStorage.setItem(STORAGE_KEYS.ADMINS, JSON.stringify(remoteAdmins));
+          } catch (e) {
+            console.warn('Failed to save admins to storage:', e);
+          }
+
+          currentList = remoteAdmins;
+          matchedAdmin =
+            currentList.find((a) => a.username.toLowerCase() === cleanUser) ||
+            INITIAL_ADMINS.find((a) => a.username.toLowerCase() === cleanUser);
+          expectedPassword = matchedAdmin?.password || 'admin123';
+          isAuthValid = Boolean(
+            matchedAdmin &&
+              (cleanPass === expectedPassword || (expectedPassword === 'admin123' && cleanPass === 'pgri1sukabumi'))
+          );
+        }
+      } catch (err) {
+        console.warn('Cloud Firestore admin verification fallback notice:', err);
+      }
+    }
 
     if (isAuthValid && matchedAdmin) {
       const user: AdminUser = matchedAdmin;

@@ -27,15 +27,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
     return () => clearInterval(interval);
   }, [lockoutSeconds]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (lockoutSeconds > 0) return;
 
     setErrorMsg(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = loginAdmin(username, password);
+    try {
+      const res = await loginAdmin(username, password);
       setIsLoading(false);
 
       if (res.success) {
@@ -53,7 +53,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
           setErrorMsg(`${res.message} (Sisa percobaan aman: ${5 - nextFailed}x)`);
         }
       }
-    }, 400);
+    } catch {
+      setIsLoading(false);
+      setErrorMsg('Gagal memverifikasi login administrator.');
+    }
   };
 
   return (

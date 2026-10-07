@@ -21,6 +21,7 @@ import {
   Vote,
   AuditLog,
   TimelineStep,
+  AdminUser,
 } from '../types/voting';
 
 export const COLLECTIONS = {
@@ -63,7 +64,8 @@ export async function seedInitialFirestoreData(
   defaultPeriods: Period[],
   defaultCandidates: Candidate[],
   defaultVoters: Voter[],
-  defaultTimeline: TimelineStep[]
+  defaultTimeline: TimelineStep[],
+  defaultAdmins: AdminUser[] = []
 ) {
   try {
     const periodsSnap = await getDocs(collection(db, COLLECTIONS.PERIODS));
@@ -108,6 +110,21 @@ export async function seedInitialFirestoreData(
 
       await batch.commit();
       console.log('✅ Initial Firestore seed completed successfully.');
+    }
+
+    // Always ensure admin accounts exist in Firestore for multi-device sync
+    if (defaultAdmins.length > 0) {
+      const adminsSnap = await getDocs(collection(db, COLLECTIONS.ADMINS));
+      if (adminsSnap.empty) {
+        console.log('⚡ Seeding initial administrator accounts to Firestore...');
+        const adminBatch = writeBatch(db);
+        defaultAdmins.forEach((a) => {
+          const ref = doc(db, COLLECTIONS.ADMINS, a.id);
+          adminBatch.set(ref, a);
+        });
+        await adminBatch.commit();
+        console.log('✅ Initial admin accounts seeded to Firestore.');
+      }
     }
   } catch (error) {
     console.error('Error during Firestore initial seeding:', error);
