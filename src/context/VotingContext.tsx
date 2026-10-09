@@ -185,13 +185,20 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   });
 
-  // 3. Voters
+  // 3. Voters (Hanya data yang diunggah oleh admin, bukan data bawaan aplikasi)
   const [voters, setVoters] = useState<Voter[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.VOTERS);
-      return stored ? JSON.parse(stored) : INITIAL_VOTERS;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          // Bersihkan data dummy bawaan (voter-001 s/d voter-024)
+          return parsed.filter((v: Voter) => !v.id.startsWith('voter-0'));
+        }
+      }
+      return [];
     } catch {
-      return INITIAL_VOTERS;
+      return [];
     }
   });
 
@@ -199,9 +206,9 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [votes, setVotes] = useState<Vote[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.VOTES);
-      return stored ? JSON.parse(stored) : INITIAL_VOTES;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return INITIAL_VOTES;
+      return [];
     }
   });
 
@@ -398,7 +405,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         await seedInitialFirestoreData(
           DEFAULT_PERIODS,
           candidates.length > 0 ? candidates : DEFAULT_CANDIDATES,
-          INITIAL_VOTERS,
+          [],
           DEFAULT_TIMELINE_STEPS,
           INITIAL_ADMINS
         );
@@ -424,10 +431,16 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           }
         });
 
-        // 3. Voters
+        // 3. Voters (Hanya data DPT yang diunggah oleh admin, buang data dummy bawaan)
         const unsubVoters = subscribeCollection<Voter>(COLLECTIONS.VOTERS, (data) => {
-          if (data && data.length > 0) {
-            setVoters(data);
+          if (data) {
+            const realVoters = data.filter((v) => !v.id.startsWith('voter-0'));
+            setVoters(realVoters);
+            try {
+              localStorage.setItem(STORAGE_KEYS.VOTERS, JSON.stringify(realVoters));
+            } catch (err) {
+              console.warn('LocalStorage notice on voters sync:', err);
+            }
           }
         });
 
@@ -1540,8 +1553,8 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setPeriods(DEFAULT_PERIODS);
     setActivePeriodId('period-2026-2027');
     setCandidates(DEFAULT_CANDIDATES);
-    setVoters(INITIAL_VOTERS);
-    setVotes(INITIAL_VOTES);
+    setVoters([]);
+    setVotes([]);
     setAuditLogs(INITIAL_AUDIT_LOGS);
     setTimelineSteps(DEFAULT_TIMELINE_STEPS);
     setAdmins(INITIAL_ADMINS);
@@ -1553,7 +1566,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       seedInitialFirestoreData(
         DEFAULT_PERIODS,
         DEFAULT_CANDIDATES,
-        INITIAL_VOTERS,
+        [],
         DEFAULT_TIMELINE_STEPS
       )
     );
