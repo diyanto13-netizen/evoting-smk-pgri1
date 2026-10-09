@@ -52,8 +52,8 @@ export function parseVoterQR(rawText: string): DecodedVoterQR | null {
     if (parsed && typeof parsed === 'object') {
       const rawId = String(parsed.nisn || parsed.nip || parsed.nuptk || parsed.id || '').trim();
       const rawPin = String(parsed.pin || '').trim();
-      if (rawId.length >= 3 && /^\d{6}$/.test(rawPin)) {
-        return { nisn: rawId, pin: rawPin };
+      if (/^\d{6}$/.test(rawPin)) {
+        return { nisn: rawId || rawPin, pin: rawPin };
       }
     }
   } catch {
@@ -71,6 +71,12 @@ export function parseVoterQR(rawText: string): DecodedVoterQR | null {
   const delimitedMatch = clean.match(/(?:EVOTE[:\s]+)?([a-zA-Z0-9_.-]{3,30})[\s,:|/-]+(\d{6})/i);
   if (delimitedMatch) {
     return { nisn: delimitedMatch[1].trim(), pin: delimitedMatch[2].trim() };
+  }
+
+  // 4. Try pure 6-digit PIN token (e.g. "839201" or "PIN: 839201")
+  const purePinMatch = clean.match(/^(?:pin[:\s]*)?(\d{6})$/i);
+  if (purePinMatch) {
+    return { nisn: purePinMatch[1], pin: purePinMatch[1] };
   }
 
   return null;

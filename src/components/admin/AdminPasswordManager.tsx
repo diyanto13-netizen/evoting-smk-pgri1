@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Sparkles,
   Info,
+  Loader2,
 } from 'lucide-react';
 
 export const AdminPasswordManager: React.FC = () => {
@@ -28,6 +29,8 @@ export const AdminPasswordManager: React.FC = () => {
     addAdminUser,
     deleteAdminUser,
   } = useVoting();
+
+  const [isSaving, setIsSaving] = useState(false);
 
   // Self change password state
   const [oldPassword, setOldPassword] = useState('');
@@ -67,7 +70,7 @@ export const AdminPasswordManager: React.FC = () => {
   const isSuperAdmin = currentAdmin?.role === 'SUPER_ADMIN';
 
   // Handler: Change Own Password
-  const handleUpdateSelfPassword = (e: React.FormEvent) => {
+  const handleUpdateSelfPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentAdmin) return;
 
@@ -91,19 +94,24 @@ export const AdminPasswordManager: React.FC = () => {
       return;
     }
 
-    const res = updateAdminPassword(currentAdmin.id, oldPassword, newPassword, false);
-    if (res.success) {
-      showAlert('success', res.message);
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } else {
-      showAlert('error', res.message);
+    setIsSaving(true);
+    try {
+      const res = await updateAdminPassword(currentAdmin.id, oldPassword, newPassword, false);
+      if (res.success) {
+        showAlert('success', res.message);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        showAlert('error', res.message);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
   // Handler: Super Admin change another admin's password directly
-  const handleUpdateTargetPassword = (e: React.FormEvent) => {
+  const handleUpdateTargetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTargetAdmin) return;
 
@@ -122,26 +130,31 @@ export const AdminPasswordManager: React.FC = () => {
       return;
     }
 
-    // Bypass old check since Super Admin is resetting it
-    const res = updateAdminPassword(selectedTargetAdmin.id, '', targetNewPassword, true);
-    if (res.success) {
-      showAlert('success', `Password akun ${selectedTargetAdmin.fullName} berhasil diubah!`);
-      setSelectedTargetAdmin(null);
-      setTargetNewPassword('');
-      setTargetConfirmPassword('');
-    } else {
-      showAlert('error', res.message);
+    setIsSaving(true);
+    try {
+      // Bypass old check since Super Admin is resetting it
+      const res = await updateAdminPassword(selectedTargetAdmin.id, '', targetNewPassword, true);
+      if (res.success) {
+        showAlert('success', `Password akun ${selectedTargetAdmin.fullName} berhasil diubah!`);
+        setSelectedTargetAdmin(null);
+        setTargetNewPassword('');
+        setTargetConfirmPassword('');
+      } else {
+        showAlert('error', res.message);
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
   // Handler: Reset to default admin123
-  const handleResetToDefault = (admin: AdminUser) => {
+  const handleResetToDefault = async (admin: AdminUser) => {
     const confirm = window.confirm(
       `Yakin ingin me-reset password akun "${admin.fullName}" (${admin.username}) kembali ke bawaan sistem ("admin123")?`
     );
     if (!confirm) return;
 
-    const res = resetAdminPassword(admin.id);
+    const res = await resetAdminPassword(admin.id);
     if (res.success) {
       showAlert('success', res.message);
     } else {
@@ -419,11 +432,20 @@ export const AdminPasswordManager: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 4}
+                disabled={isSaving || !newPassword || newPassword !== confirmPassword || newPassword.length < 4}
                 className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
-                <Lock className="w-4 h-4" />
-                Simpan Password Baru Anda
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Menyimpan ke Cloud Firestore...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Simpan Password Baru Anda</span>
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -676,10 +698,17 @@ export const AdminPasswordManager: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!targetNewPassword || targetNewPassword !== targetConfirmPassword || targetNewPassword.length < 4}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black text-xs transition-colors shadow-xs cursor-pointer"
+                  disabled={isSaving || !targetNewPassword || targetNewPassword !== targetConfirmPassword || targetNewPassword.length < 4}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black text-xs transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  Simpan Password
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>Simpan Password</span>
+                  )}
                 </button>
               </div>
             </form>

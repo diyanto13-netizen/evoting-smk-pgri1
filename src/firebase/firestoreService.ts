@@ -58,7 +58,9 @@ export function subscribeCollection<T extends { id: string }>(
 }
 
 /**
- * Seed initial data if Firestore is empty on first run
+ * Seed initial data if Firestore collections are empty on first run.
+ * Checks EACH collection independently so candidates, voters, or settings are NEVER
+ * overwritten if their respective collections already contain documents!
  */
 export async function seedInitialFirestoreData(
   defaultPeriods: Period[],
@@ -68,36 +70,52 @@ export async function seedInitialFirestoreData(
   defaultAdmins: AdminUser[] = []
 ) {
   try {
+    // 1. Periods (only if empty)
     const periodsSnap = await getDocs(collection(db, COLLECTIONS.PERIODS));
-    if (periodsSnap.empty) {
-      console.log('⚡ Firestore collections are empty. Seeding initial institutional data...');
+    if (periodsSnap.empty && defaultPeriods.length > 0) {
+      console.log('⚡ Seeding initial periods collection...');
       const batch = writeBatch(db);
-
-      // Seed Periods
       defaultPeriods.forEach((p) => {
         const ref = doc(db, COLLECTIONS.PERIODS, p.id);
         batch.set(ref, p);
       });
+      await batch.commit();
+    }
 
-      // Seed Candidates
+    // 2. Candidates (CHECK INDEPENDENTLY! NEVER OVERWRITE IF CANDIDATES ALREADY EXIST)
+    const candidatesSnap = await getDocs(collection(db, COLLECTIONS.CANDIDATES));
+    if (candidatesSnap.empty && defaultCandidates.length > 0) {
+      console.log('⚡ Seeding initial candidates collection (collection was empty)...');
+      const batch = writeBatch(db);
       defaultCandidates.forEach((c) => {
         const ref = doc(db, COLLECTIONS.CANDIDATES, c.id);
         batch.set(ref, c);
       });
+      await batch.commit();
+      console.log('✅ Initial candidates seeded to Firestore.');
+    }
 
-      // Seed Voters
-      defaultVoters.forEach((v) => {
-        const ref = doc(db, COLLECTIONS.VOTERS, v.id);
-        batch.set(ref, v);
-      });
+    // 3. Voters (only if empty)
+    const votersSnap = await getDocs(collection(db, COLLECTIONS.VOTERS));
+    if (votersSnap.empty && defaultVoters.length > 0) {
+      console.log('⚡ Seeding initial DPT voters to Firestore...');
+      await batchSetFirestoreDocs(COLLECTIONS.VOTERS, defaultVoters);
+    }
 
-      // Seed Timeline
+    // 4. Timeline Steps (only if empty)
+    const timelineSnap = await getDocs(collection(db, COLLECTIONS.TIMELINE_STEPS));
+    if (timelineSnap.empty && defaultTimeline.length > 0) {
+      const batch = writeBatch(db);
       defaultTimeline.forEach((t) => {
         const ref = doc(db, COLLECTIONS.TIMELINE_STEPS, t.id);
         batch.set(ref, t);
       });
+      await batch.commit();
+    }
 
-      // Initial Audit Log
+    // 5. Initial Audit Log (only if audit collection is empty)
+    const auditSnap = await getDocs(collection(db, COLLECTIONS.AUDIT_LOGS));
+    if (auditSnap.empty) {
       const initLog: AuditLog = {
         id: `log-init-${Date.now()}`,
         timestamp: new Date().toISOString(),
@@ -105,14 +123,10 @@ export async function seedInitialFirestoreData(
         details: 'Database Cloud Firestore berhasil diinisialisasi untuk e-Voting Pemilos.',
         userType: 'SYSTEM',
       };
-      const logRef = doc(db, COLLECTIONS.AUDIT_LOGS, initLog.id);
-      batch.set(logRef, initLog);
-
-      await batch.commit();
-      console.log('✅ Initial Firestore seed completed successfully.');
+      await setDoc(doc(db, COLLECTIONS.AUDIT_LOGS, initLog.id), initLog);
     }
 
-    // Always ensure admin accounts exist in Firestore for multi-device sync
+    // 6. Ensure admin accounts exist in Firestore for multi-device sync
     if (defaultAdmins.length > 0) {
       const adminsSnap = await getDocs(collection(db, COLLECTIONS.ADMINS));
       if (adminsSnap.empty) {
@@ -128,6 +142,36 @@ export async function seedInitialFirestoreData(
     }
   } catch (error) {
     console.error('Error during Firestore initial seeding:', error);
+  }
+}
+
+/**
+ * Synchronize full list of candidates to Firestore,
+ * ensuring any deleted candidates are removed from Firestore.
+ */
+export async function syncCandidatesCollectionToFirestore(candidates: Candidate[]): Promise<void> {
+  try {
+    const existingSnap = await getDocs(collection(db, COLLECTIONS.CANDIDATES));
+    const activeIds = new Set(candidates.map((c) => c.id));
+    const batch = writeBatch(db);
+
+    // Remove deleted documents from Firestore
+    existingSnap.forEach((d) => {
+      if (!activeIds.has(d.id)) {
+        batch.delete(doc(db, COLLECTIONS.CANDIDATES, d.id));
+      }
+    });
+
+    // Upsert current candidates
+    candidates.forEach((c) => {
+      batch.set(doc(db, COLLECTIONS.CANDIDATES, c.id), c);
+    });
+
+    await batch.commit();
+    console.log(`✅ Synced ${candidates.length} candidates permanently to Firestore.`);
+  } catch (error) {
+    console.error('Error syncing candidates collection to Firestore:', error);
+    throw error;
   }
 }
 

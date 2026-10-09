@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Link as LinkIcon,
   RotateCcw,
+  CloudUpload,
 } from 'lucide-react';
 
 const compressImageFile = (file: File): Promise<string> => {
@@ -25,8 +26,9 @@ const compressImageFile = (file: File): Promise<string> => {
       const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 500;
-        const MAX_HEIGHT = 650;
+        // Compact dimensions to preserve storage and fast transfer across devices
+        const MAX_WIDTH = 360;
+        const MAX_HEIGHT = 480;
         let width = img.width;
         let height = img.height;
 
@@ -47,7 +49,7 @@ const compressImageFile = (file: File): Promise<string> => {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
           resolve(dataUrl);
         } else {
           resolve(e.target?.result as string);
@@ -69,6 +71,7 @@ export const CandidateManager: React.FC = () => {
     addCandidate,
     updateCandidate,
     deleteCandidate,
+    saveCandidatesToCloud,
   } = useVoting();
 
   const [activeTab, setActiveTab] = useState<CandidateCategory>('OSIS');
@@ -76,6 +79,8 @@ export const CandidateManager: React.FC = () => {
   const [editingCand, setEditingCand] = useState<Candidate | null>(null);
   const [showResetVotesModal, setShowResetVotesModal] = useState(false);
   const [preSelectedCandId, setPreSelectedCandId] = useState<string | undefined>(undefined);
+  const [isSavingToCloud, setIsSavingToCloud] = useState(false);
+  const [cloudNotice, setCloudNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Form states
   const [category, setCategory] = useState<CandidateCategory>('OSIS');
@@ -222,8 +227,52 @@ export const CandidateManager: React.FC = () => {
     setShowModal(false);
   };
 
+  const handleSaveToCloud = async () => {
+    try {
+      setIsSavingToCloud(true);
+      setCloudNotice(null);
+      const res = await saveCandidatesToCloud();
+      if (res.success) {
+        setCloudNotice({ type: 'success', message: res.message });
+      } else {
+        setCloudNotice({ type: 'error', message: res.message });
+      }
+    } catch {
+      setCloudNotice({ type: 'error', message: 'Gagal menghubungi Cloud Firestore.' });
+    } finally {
+      setIsSavingToCloud(false);
+      setTimeout(() => setCloudNotice(null), 6000);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Cloud Sync Notification Banner */}
+      {cloudNotice && (
+        <div
+          className={`p-3.5 rounded-2xl border text-xs sm:text-sm font-black flex items-center justify-between gap-2 shadow-xs transition-all ${
+            cloudNotice.type === 'success'
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+              : 'bg-rose-50 border-rose-300 text-rose-950'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {cloudNotice.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            )}
+            <span>{cloudNotice.message}</span>
+          </div>
+          <button
+            onClick={() => setCloudNotice(null)}
+            className="text-xs px-2 py-1 rounded hover:bg-black/5 cursor-pointer"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -235,7 +284,7 @@ export const CandidateManager: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Category Tabs */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
             <button
@@ -259,6 +308,17 @@ export const CandidateManager: React.FC = () => {
               Paslon MPK
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSaveToCloud}
+            disabled={isSavingToCloud}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Kunci dan simpan seluruh susunan paslon permanen ke database Cloud Firestore (multi-device)"
+          >
+            <CloudUpload className="w-4 h-4" />
+            <span>{isSavingToCloud ? 'Menyimpan...' : 'Kunci ke Cloud'}</span>
+          </button>
 
           <button
             type="button"

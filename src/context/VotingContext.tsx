@@ -35,6 +35,7 @@ import {
   deleteFirestoreVotesByCandidate,
   deleteFirestoreVotesByCategory,
   resetAllFirestoreVoters,
+  syncCandidatesCollectionToFirestore,
 } from '../firebase/firestoreService';
 
 interface CastVoteResult {
@@ -67,6 +68,7 @@ interface VotingContextType {
   addCandidate: (candidate: Omit<Candidate, 'id'>) => void;
   updateCandidate: (id: string, updates: Partial<Candidate>) => void;
   deleteCandidate: (id: string) => void;
+  saveCandidatesToCloud: () => Promise<{ success: boolean; message: string }>;
 
   // Voters
   voters: Voter[];
@@ -104,8 +106,10 @@ interface VotingContextType {
     oldPassword: string,
     newPassword: string,
     bypassOldCheck?: boolean
-  ) => { success: boolean; message: string };
-  resetAdminPassword: (adminId: string) => { success: boolean; message: string; defaultPassword: string };
+  ) => Promise<{ success: boolean; message: string }>;
+  resetAdminPassword: (
+    adminId: string
+  ) => Promise<{ success: boolean; message: string; defaultPassword: string }>;
   addAdminUser: (
     admin: Omit<AdminUser, 'id'> & { password?: string }
   ) => { success: boolean; message: string };
@@ -393,7 +397,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       try {
         await seedInitialFirestoreData(
           DEFAULT_PERIODS,
-          DEFAULT_CANDIDATES,
+          candidates.length > 0 ? candidates : DEFAULT_CANDIDATES,
           INITIAL_VOTERS,
           DEFAULT_TIMELINE_STEPS,
           INITIAL_ADMINS
@@ -408,10 +412,15 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           }
         });
 
-        // 2. Candidates
+        // 2. Candidates (real-time sync to state & localStorage)
         const unsubCandidates = subscribeCollection<Candidate>(COLLECTIONS.CANDIDATES, (data) => {
           if (data && data.length > 0) {
             setCandidates(data);
+            try {
+              localStorage.setItem(STORAGE_KEYS.CANDIDATES, JSON.stringify(data));
+            } catch (err) {
+              console.warn('LocalStorage notice on candidate sync:', err);
+            }
           }
         });
 
@@ -487,40 +496,72 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, [isFirebaseEnabled]);
 
-  // Sync to LocalStorage
+  // Sync to LocalStorage safely (handles QuotaExceededError and private browsing modes)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PERIODS, JSON.stringify(periods));
+    try {
+      localStorage.setItem(STORAGE_KEYS.PERIODS, JSON.stringify(periods));
+    } catch (e) {
+      console.warn('LocalStorage save notice (periods):', e);
+    }
   }, [periods]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_PERIOD_ID, activePeriodId);
+    try {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_PERIOD_ID, activePeriodId);
+    } catch (e) {
+      console.warn('LocalStorage save notice (activePeriodId):', e);
+    }
   }, [activePeriodId]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CANDIDATES, JSON.stringify(candidates));
+    try {
+      localStorage.setItem(STORAGE_KEYS.CANDIDATES, JSON.stringify(candidates));
+    } catch (e) {
+      console.warn('LocalStorage save notice (candidates):', e);
+    }
   }, [candidates]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.VOTERS, JSON.stringify(voters));
+    try {
+      localStorage.setItem(STORAGE_KEYS.VOTERS, JSON.stringify(voters));
+    } catch (e) {
+      console.warn('LocalStorage save notice (voters):', e);
+    }
   }, [voters]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.VOTES, JSON.stringify(votes));
+    try {
+      localStorage.setItem(STORAGE_KEYS.VOTES, JSON.stringify(votes));
+    } catch (e) {
+      console.warn('LocalStorage save notice (votes):', e);
+    }
   }, [votes]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+    } catch (e) {
+      console.warn('LocalStorage save notice (auditLogs):', e);
+    }
   }, [auditLogs]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.TIMELINE_STEPS, JSON.stringify(timelineSteps));
+    try {
+      localStorage.setItem(STORAGE_KEYS.TIMELINE_STEPS, JSON.stringify(timelineSteps));
+    } catch (e) {
+      console.warn('LocalStorage save notice (timelineSteps):', e);
+    }
   }, [timelineSteps]);
 
   useEffect(() => {
-    if (currentAdmin) {
-      localStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, JSON.stringify(currentAdmin));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
+    try {
+      if (currentAdmin) {
+        localStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, JSON.stringify(currentAdmin));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
+      }
+    } catch (e) {
+      console.warn('LocalStorage save notice (adminSession):', e);
     }
   }, [currentAdmin]);
 
@@ -769,12 +810,30 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   };
 
-  // Admin Login (supports instant local check & async Firestore fallback for multi-device sync)
+  // Admin Login (fetches latest remote credentials first when online for immediate multi-device sync, with instant local fallback)
   const loginAdmin = async (username: string, pass: string): Promise<{ success: boolean; message: string }> => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = pass.trim();
 
     let currentList = admins;
+
+    // 1. If Cloud Firestore is enabled, fetch latest remote admins FIRST so multi-device updates take effect immediately
+    if (isFirebaseEnabled) {
+      try {
+        const remoteAdmins = await fetchAllFirestoreDocs<AdminUser>(COLLECTIONS.ADMINS);
+        if (remoteAdmins && remoteAdmins.length > 0) {
+          currentList = remoteAdmins;
+          setAdmins(remoteAdmins);
+          try {
+            localStorage.setItem(STORAGE_KEYS.ADMINS, JSON.stringify(remoteAdmins));
+          } catch (e) {
+            console.warn('Failed to save admins to storage:', e);
+          }
+        }
+      } catch (err) {
+        console.warn('Notice: Firestore admin verification offline, using local storage cache:', err);
+      }
+    }
 
     let matchedAdmin =
       currentList.find((a) => a.username.toLowerCase() === cleanUser) ||
@@ -787,34 +846,6 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       matchedAdmin &&
         (cleanPass === expectedPassword || (expectedPassword === 'admin123' && cleanPass === 'pgri1sukabumi'))
     );
-
-    // If local verification failed but Cloud Firestore is enabled, fetch latest remote admins
-    // to handle the scenario where the password was updated on another device just seconds ago!
-    if (!isAuthValid && isFirebaseEnabled) {
-      try {
-        const remoteAdmins = await fetchAllFirestoreDocs<AdminUser>(COLLECTIONS.ADMINS);
-        if (remoteAdmins && remoteAdmins.length > 0) {
-          setAdmins(remoteAdmins);
-          try {
-            localStorage.setItem(STORAGE_KEYS.ADMINS, JSON.stringify(remoteAdmins));
-          } catch (e) {
-            console.warn('Failed to save admins to storage:', e);
-          }
-
-          currentList = remoteAdmins;
-          matchedAdmin =
-            currentList.find((a) => a.username.toLowerCase() === cleanUser) ||
-            INITIAL_ADMINS.find((a) => a.username.toLowerCase() === cleanUser);
-          expectedPassword = matchedAdmin?.password || 'admin123';
-          isAuthValid = Boolean(
-            matchedAdmin &&
-              (cleanPass === expectedPassword || (expectedPassword === 'admin123' && cleanPass === 'pgri1sukabumi'))
-          );
-        }
-      } catch (err) {
-        console.warn('Cloud Firestore admin verification fallback notice:', err);
-      }
-    }
 
     if (isAuthValid && matchedAdmin) {
       const user: AdminUser = matchedAdmin;
@@ -847,13 +878,13 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Password & Admin management functions
-  const updateAdminPassword = (
+  // Password & Admin management functions (Multi-Device Cloud Firestore Synchronized)
+  const updateAdminPassword = async (
     adminId: string,
     oldPassword: string,
     newPassword: string,
     bypassOldCheck = false
-  ) => {
+  ): Promise<{ success: boolean; message: string }> => {
     const targetAdmin = admins.find((a) => a.id === adminId);
     if (!targetAdmin) {
       return { success: false, message: 'Akun administrator tidak ditemukan.' };
@@ -878,11 +909,12 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       updatedAt: new Date().toISOString(),
     };
 
+    // 1. Update local state
     setAdmins((prev) =>
       prev.map((a) => (a.id === adminId ? updatedAdmin : a))
     );
 
-    // If changing password for currently logged in admin, update active session
+    // 2. If changing password for currently logged in admin, update active session
     if (currentAdmin?.id === adminId) {
       setCurrentAdmin(updatedAdmin);
       try {
@@ -892,21 +924,34 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     }
 
-    syncToCloud(() => setFirestoreDoc(COLLECTIONS.ADMINS, adminId, updatedAdmin));
+    // 3. Persist to Cloud Firestore with await to guarantee write across all devices
+    let isCloudSynced = false;
+    if (isFirebaseEnabled) {
+      try {
+        await setFirestoreDoc(COLLECTIONS.ADMINS, adminId, updatedAdmin);
+        isCloudSynced = true;
+      } catch (err) {
+        console.warn('Gagal sinkron password ke Cloud Firestore:', err);
+      }
+    }
 
     addAuditLog(
       'UPDATE_PASSWORD_ADMIN',
-      `Kata sandi untuk akun "${targetAdmin.username}" (${targetAdmin.fullName}) berhasil diperbarui oleh ${currentAdmin?.fullName || 'Super Admin'}.`,
+      `Kata sandi untuk akun "${targetAdmin.username}" (${targetAdmin.fullName}) berhasil diperbarui oleh ${currentAdmin?.fullName || 'Super Admin'}.${isCloudSynced ? ' (Tersinkron ke Cloud Firestore)' : ''}`,
       'ADMIN'
     );
 
     return {
       success: true,
-      message: `Password untuk akun "${targetAdmin.fullName}" berhasil diperbarui!`,
+      message: isCloudSynced
+        ? `Password untuk akun "${targetAdmin.fullName}" berhasil diperbarui dan disinkronkan ke seluruh perangkat (Cloud Firestore)!`
+        : `Password untuk akun "${targetAdmin.fullName}" berhasil diperbarui secara lokal.`,
     };
   };
 
-  const resetAdminPassword = (adminId: string) => {
+  const resetAdminPassword = async (
+    adminId: string
+  ): Promise<{ success: boolean; message: string; defaultPassword: string }> => {
     const targetAdmin = admins.find((a) => a.id === adminId);
     if (!targetAdmin) {
       return { success: false, message: 'Akun administrator tidak ditemukan.', defaultPassword: '' };
@@ -932,17 +977,27 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     }
 
-    syncToCloud(() => setFirestoreDoc(COLLECTIONS.ADMINS, adminId, updatedAdmin));
+    let isCloudSynced = false;
+    if (isFirebaseEnabled) {
+      try {
+        await setFirestoreDoc(COLLECTIONS.ADMINS, adminId, updatedAdmin);
+        isCloudSynced = true;
+      } catch (err) {
+        console.warn('Failed to reset admin in Firestore:', err);
+      }
+    }
 
     addAuditLog(
       'RESET_PASSWORD_ADMIN',
-      `Password akun "${targetAdmin.username}" (${targetAdmin.fullName}) di-reset ke nilai bawaan "${defaultPass}" oleh Super Admin ${currentAdmin?.fullName}.`,
+      `Password akun "${targetAdmin.username}" (${targetAdmin.fullName}) di-reset ke nilai bawaan "${defaultPass}" oleh Super Admin ${currentAdmin?.fullName}.${isCloudSynced ? ' (Tersinkron ke Cloud Firestore)' : ''}`,
       'ADMIN'
     );
 
     return {
       success: true,
-      message: `Password akun "${targetAdmin.fullName}" berhasil di-reset ke default ("${defaultPass}").`,
+      message: isCloudSynced
+        ? `Password akun "${targetAdmin.fullName}" berhasil di-reset ke default ("${defaultPass}") dan disinkronkan ke semua perangkat!`
+        : `Password akun "${targetAdmin.fullName}" berhasil di-reset ke default ("${defaultPass}").`,
       defaultPassword: defaultPass,
     };
   };
@@ -1038,7 +1093,15 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...candidateData,
       id: `cand-${Date.now()}`,
     };
-    setCandidates((prev) => [...prev, newCand]);
+    setCandidates((prev) => {
+      const next = [...prev, newCand];
+      try {
+        localStorage.setItem(STORAGE_KEYS.CANDIDATES, JSON.stringify(next));
+      } catch (err) {
+        console.warn('LocalStorage notice on addCandidate:', err);
+      }
+      return next;
+    });
     syncToCloud(() => setFirestoreDoc(COLLECTIONS.CANDIDATES, newCand.id, newCand));
     addAuditLog(
       'TAMBAH_KANDIDAT',
@@ -1048,34 +1111,78 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const updateCandidate = (id: string, updates: Partial<Candidate>) => {
-    let updatedCandidate: Candidate | undefined;
-    setCandidates((prev) =>
-      prev.map((c) => {
+    let targetCandidate: Candidate | undefined;
+
+    setCandidates((prev) => {
+      const next = prev.map((c) => {
         if (c.id === id) {
-          updatedCandidate = { ...c, ...updates };
-          return updatedCandidate;
+          const merged = { ...c, ...updates };
+          targetCandidate = merged;
+          return merged;
         }
         return c;
-      })
-    );
-    if (updatedCandidate) {
-      const full = updatedCandidate;
-      syncToCloud(() => setFirestoreDoc(COLLECTIONS.CANDIDATES, id, full));
-    } else {
-      syncToCloud(() => updateFirestoreDoc(COLLECTIONS.CANDIDATES, id, updates));
+      });
+      try {
+        localStorage.setItem(STORAGE_KEYS.CANDIDATES, JSON.stringify(next));
+      } catch (err) {
+        console.warn('LocalStorage notice on updateCandidate:', err);
+      }
+      return next;
+    });
+
+    // Ensure full candidate object is resolved even if React batching deferred state callback
+    if (!targetCandidate) {
+      const current = candidates.find((c) => c.id === id);
+      targetCandidate = current ? { ...current, ...updates } : ({ ...updates, id } as Candidate);
     }
-    addAuditLog('UPDATE_KANDIDAT', `Data paslon ID: ${id} telah diperbarui.`, 'ADMIN');
+
+    const full = targetCandidate;
+    syncToCloud(() => setFirestoreDoc(COLLECTIONS.CANDIDATES, id, full));
+    addAuditLog(
+      'UPDATE_KANDIDAT',
+      `Data paslon ID: ${id} (${full.chairmanName} & ${full.viceChairmanName} - ${full.category}) telah diperbarui.`,
+      'ADMIN'
+    );
   };
 
   const deleteCandidate = (id: string) => {
     const target = candidates.find((c) => c.id === id);
-    setCandidates((prev) => prev.filter((c) => c.id !== id));
+    setCandidates((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CANDIDATES, JSON.stringify(next));
+      } catch (err) {
+        console.warn('LocalStorage notice on deleteCandidate:', err);
+      }
+      return next;
+    });
     syncToCloud(() => deleteFirestoreDoc(COLLECTIONS.CANDIDATES, id));
     addAuditLog(
       'HAPUS_KANDIDAT',
-      `Paslon ${target?.category} No. ${target?.ballotNumber} (${target?.chairmanName}) telah dihapus dari daftar pemilihan.`,
+      `Paslon ${target?.category || ''} No. ${target?.ballotNumber || ''} (${target?.chairmanName || id}) telah dihapus dari daftar pemilihan.`,
       'ADMIN'
     );
+  };
+
+  const saveCandidatesToCloud = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      await syncCandidatesCollectionToFirestore(candidates);
+      addAuditLog(
+        'SYNC_KANDIDAT_KE_CLOUD',
+        `Seluruh data ${candidates.length} paslon berhasil disimpan permanen ke Cloud Firestore.`,
+        'ADMIN'
+      );
+      return {
+        success: true,
+        message: `Berhasil mengunci dan menyimpan ${candidates.length} paslon ke Cloud Firestore. Data sekarang sinkron di seluruh perangkat.`,
+      };
+    } catch (err) {
+      console.error('Failed to sync candidates to cloud:', err);
+      return {
+        success: false,
+        message: 'Gagal menyimpan paslon ke Cloud. Periksa koneksi internet Anda.',
+      };
+    }
   };
 
   // Voter actions
@@ -1469,6 +1576,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         addCandidate,
         updateCandidate,
         deleteCandidate,
+        saveCandidatesToCloud,
         voters,
         activeVoters,
         addVoter,
