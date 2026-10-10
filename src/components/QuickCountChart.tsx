@@ -179,7 +179,26 @@ export const QuickCountChart: React.FC<QuickCountChartProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isStageOpen]);
 
+  const isQuickCountLocked = Boolean(activePeriod && !activePeriod.isResultPublished);
+  // Fullscreen projector is only visible when Quick Count is published OR user is authenticated as admin
+  const canShowProjectorButton = !isQuickCountLocked || Boolean(currentAdmin);
+
+  // Automatically close projector stage mode if Quick Count gets locked and user is not admin
+  useEffect(() => {
+    if (isQuickCountLocked && !currentAdmin && isStageOpen) {
+      setIsStageOpen(false);
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  }, [isQuickCountLocked, currentAdmin, isStageOpen]);
+
   const toggleStageMode = () => {
+    // Security check: non-admin cannot open projector when quick count is locked
+    if (isQuickCountLocked && !currentAdmin) {
+      setIsStageOpen(false);
+      return;
+    }
     if (!isStageOpen) {
       setIsStageOpen(true);
       if (document.documentElement.requestFullscreen) {
@@ -320,17 +339,24 @@ export const QuickCountChart: React.FC<QuickCountChartProps> = ({
                 </button>
               </div>
 
-              {/* Fullscreen Big Monitor Trigger */}
-              <button
-                type="button"
-                onClick={toggleStageMode}
-                className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-amber-300 hover:text-amber-200 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shadow-md border-2 border-amber-400/40 cursor-pointer"
-                title="Buka tampilan layar penuh untuk proyektor aula atau TV monitor besar"
-              >
-                <Tv className="w-4 h-4 text-amber-400" />
-                <span>Layar Penuh Proyektor</span>
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
+              {/* Fullscreen Big Monitor Trigger (Hanya muncul jika Quick Count tidak dikunci ATAU pengguna adalah Admin) */}
+              {canShowProjectorButton && (
+                <button
+                  type="button"
+                  onClick={toggleStageMode}
+                  className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-amber-300 hover:text-amber-200 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shadow-md border-2 border-amber-400/40 cursor-pointer"
+                  title="Buka tampilan layar penuh untuk proyektor aula atau TV monitor besar"
+                >
+                  <Tv className="w-4 h-4 text-amber-400" />
+                  <span>Layar Penuh Proyektor</span>
+                  {isQuickCountLocked && currentAdmin && (
+                    <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/40 font-bold">
+                      Admin
+                    </span>
+                  )}
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -703,7 +729,7 @@ export const QuickCountChart: React.FC<QuickCountChartProps> = ({
       {/* ============================================================== */}
       {/* 2. FULLSCREEN LIVE STAGE MODE (MONITOR BESAR / PROYEKTOR AULA) */}
       {/* ============================================================== */}
-      {isStageOpen && (
+      {isStageOpen && canShowProjectorButton && (
         <div className="fixed inset-0 z-50 bg-slate-950 text-white flex flex-col overflow-y-auto font-sans">
           {/* Top Stage Bar */}
           <header className="bg-slate-900/90 border-b-2 border-slate-800 px-6 py-4 backdrop-blur-md sticky top-0 z-20">
@@ -714,11 +740,17 @@ export const QuickCountChart: React.FC<QuickCountChartProps> = ({
                   <PemilosLogo className="w-11 h-11 drop-shadow-md" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/50">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                       LIVE QUICK COUNT
                     </span>
+                    {isQuickCountLocked && currentAdmin && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-300 bg-amber-950/90 px-2.5 py-0.5 rounded-full border border-amber-500/50">
+                        <Lock className="w-3 h-3 text-amber-400" />
+                        TERKUNCI PUBLIK (AKSES ADMIN)
+                      </span>
+                    )}
                     <span className="text-xs text-slate-400 font-mono flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-amber-400" />
                       {currentTime}
