@@ -21,7 +21,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       <div className="bg-white rounded-2xl p-4 sm:p-5 border-2 border-slate-200/90 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group">
         <div className="flex items-center justify-between">
           <span className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wide">
-            Total DPT Siswa
+            Total DPT Siswa dan Guru
           </span>
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Users className="w-5 h-5" />
@@ -98,7 +98,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             {unvoted.toLocaleString('id-ID')}
           </div>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
-            Siswa ditunggu di bilik suara
+            Pemilih ditunggu di bilik suara
           </p>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-amber-500"></div>

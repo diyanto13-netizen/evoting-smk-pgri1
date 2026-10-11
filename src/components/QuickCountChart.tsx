@@ -19,6 +19,7 @@ import {
   Sparkles,
   Crown,
   ChevronRight,
+  GraduationCap,
 } from 'lucide-react';
 
 interface QuickCountChartProps {
@@ -250,28 +251,106 @@ export const QuickCountChart: React.FC<QuickCountChartProps> = ({
   const totalVotedCount = activeVoters.filter((v) => v.hasVoted).length;
   const overallTurnout = totalDpt > 0 ? (totalVotedCount / totalDpt) * 100 : 0;
 
-  // Major turnouts
-  const majors = [
-    'Teknik Komputer & Jaringan (TKJ)',
-    'Akuntansi (AKL)',
-    'Otomatisasi Perkantoran (OTKP/MPLB)',
-    'Pemasaran/Bisnis Daring (BR)',
+  // Major and Educator turnouts breakdown
+  const isTeacherVoter = (v: any) =>
+    v.major === 'Pendidik / Tenaga Kependidikan' ||
+    v.major?.toLowerCase().includes('pendidik') ||
+    v.major?.toLowerCase().includes('kependidikan') ||
+    v.major?.toLowerCase().includes('guru') ||
+    v.classGrade?.toLowerCase().includes('dewan guru') ||
+    v.classGrade?.toLowerCase().includes('guru');
+
+  const baseCategories = [
+    {
+      name: 'Teknik Komputer & Jaringan (TKJ)',
+      shortName: 'TKJ',
+      isTeacher: false,
+      matcher: (v: any) =>
+        !isTeacherVoter(v) &&
+        (v.major === 'Teknik Komputer & Jaringan (TKJ)' ||
+          v.major?.toLowerCase().includes('tkj') ||
+          v.major?.toLowerCase().includes('teknik komputer')),
+      barColor: 'bg-blue-600',
+    },
+    {
+      name: 'Akuntansi (AKL)',
+      shortName: 'AKL',
+      isTeacher: false,
+      matcher: (v: any) =>
+        !isTeacherVoter(v) &&
+        (v.major === 'Akuntansi (AKL)' ||
+          v.major?.toLowerCase().includes('akl') ||
+          v.major?.toLowerCase().includes('akuntansi')),
+      barColor: 'bg-emerald-600',
+    },
+    {
+      name: 'Otomatisasi Perkantoran (OTKP/MPLB)',
+      shortName: 'OTKP / MPLB',
+      isTeacher: false,
+      matcher: (v: any) =>
+        !isTeacherVoter(v) &&
+        (v.major === 'Otomatisasi Perkantoran (OTKP/MPLB)' ||
+          v.major?.toLowerCase().includes('otkp') ||
+          v.major?.toLowerCase().includes('mplb') ||
+          v.major?.toLowerCase().includes('perkantoran')),
+      barColor: 'bg-purple-600',
+    },
+    {
+      name: 'Pemasaran/Bisnis Daring (BR)',
+      shortName: 'BR',
+      isTeacher: false,
+      matcher: (v: any) =>
+        !isTeacherVoter(v) &&
+        (v.major === 'Pemasaran/Bisnis Daring (BR)' ||
+          v.major?.toLowerCase().includes('br') ||
+          v.major?.toLowerCase().includes('pemasaran') ||
+          v.major?.toLowerCase().includes('bisnis daring')),
+      barColor: 'bg-rose-600',
+    },
+    {
+      name: 'Pendidik / Tenaga Kependidikan',
+      shortName: 'Dewan Guru & Tendik',
+      isTeacher: true,
+      matcher: (v: any) => isTeacherVoter(v),
+      barColor: 'bg-amber-500',
+    },
   ];
 
-  const majorTurnouts = majors.map((majorName) => {
-    const inMajor = activeVoters.filter(
-      (v) =>
-        v.major === majorName ||
-        v.major.toLowerCase().includes(majorName.toLowerCase().slice(0, 10))
-    );
-    const votedInMajor = inMajor.filter((v) => v.hasVoted).length;
-    const totalInMajor = inMajor.length || 1;
-    const pct = inMajor.length > 0 ? (votedInMajor / totalInMajor) * 100 : 0;
+  // Also include any other custom student majors from uploaded DPT if present
+  const customMajors = Array.from(
+    new Set(
+      activeVoters
+        .filter(
+          (v) =>
+            !baseCategories.some((cat) => cat.matcher(v)) &&
+            v.major &&
+            v.major.trim() !== ''
+        )
+        .map((v) => v.major.trim())
+    )
+  ).map((majorName) => ({
+    name: majorName,
+    shortName: majorName,
+    isTeacher: false,
+    matcher: (v: any) => v.major === majorName,
+    barColor: 'bg-indigo-600',
+  }));
+
+  const allParticipationCategories = [...baseCategories, ...customMajors];
+
+  const majorTurnouts = allParticipationCategories.map((cat) => {
+    const inCategory = activeVoters.filter(cat.matcher);
+    const votedInCategory = inCategory.filter((v) => v.hasVoted).length;
+    const totalInCategory = inCategory.length;
+    const pct = totalInCategory > 0 ? (votedInCategory / totalInCategory) * 100 : 0;
     return {
-      name: majorName,
-      voted: votedInMajor,
-      total: inMajor.length,
+      name: cat.name,
+      shortName: cat.shortName,
+      isTeacher: cat.isTeacher,
+      voted: votedInCategory,
+      total: totalInCategory,
       pct,
+      barColor: cat.barColor,
     };
   });
 
@@ -681,43 +760,61 @@ export const QuickCountChart: React.FC<QuickCountChartProps> = ({
             </div>
           )}
 
-          {/* Turnout per Major / Jurusan Breakdown */}
+          {/* Turnout per Major / Jurusan & Tenaga Pendidik Breakdown */}
           <div className="mt-10 pt-8 border-t-2 border-slate-200">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-950 flex items-center gap-2">
                   <Users className="w-5 h-5 text-blue-700" />
                   Partisipasi Hak Pilih per Kompetensi Keahlian (Jurusan)
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700 font-medium">
-                  Pemantauan tingkat kehadiran siswa di bilik suara digital per program jurusan
+                  Pemantauan tingkat kehadiran pemilih di bilik suara digital per program keahlian serta dewan pendidik
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
               {majorTurnouts.map((m, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border-2 border-slate-200 text-xs sm:text-sm"
+                  className={`p-3.5 sm:p-4 rounded-2xl border-2 text-xs sm:text-sm transition-all ${
+                    m.isTeacher
+                      ? 'bg-amber-50/80 border-amber-300 shadow-xs'
+                      : 'bg-slate-50 border-slate-200'
+                  }`}
                 >
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-extrabold text-slate-900 truncate" title={m.name}>
-                      {m.name}
-                    </span>
-                    <span className="font-black text-blue-800 ml-2 text-sm sm:text-base">
+                  <div className="flex justify-between items-start mb-1.5 gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {m.isTeacher && <GraduationCap className="w-4 h-4 text-amber-700 shrink-0" />}
+                        <span className="font-extrabold text-slate-900 truncate block" title={m.name}>
+                          {m.name}
+                        </span>
+                      </div>
+                      {m.isTeacher && (
+                        <span className="inline-block mt-1 text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                          Dewan Guru & Tendik
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`font-black ml-1 text-sm sm:text-base shrink-0 ${
+                        m.isTeacher ? 'text-amber-900' : 'text-blue-800'
+                      }`}
+                    >
                       {m.pct.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                  <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden mt-2">
                     <div
-                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                      className={`h-2.5 rounded-full transition-all duration-500 ${m.barColor}`}
                       style={{ width: `${m.pct}%` }}
                     ></div>
                   </div>
                   <div className="flex justify-between text-xs font-semibold text-slate-700 mt-2">
                     <span>{m.voted} Memilih</span>
-                    <span>Total {m.total} Siswa</span>
+                    <span>Total {m.total} {m.isTeacher ? 'Guru & Tendik' : 'Siswa'}</span>
                   </div>
                 </div>
               ))}

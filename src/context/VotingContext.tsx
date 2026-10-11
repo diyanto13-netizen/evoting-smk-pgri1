@@ -193,7 +193,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
           // Bersihkan data dummy bawaan (voter-001 s/d voter-024)
-          return parsed.filter((v: Voter) => !v.id.startsWith('voter-0'));
+          return parsed.filter((v: Voter) => !v.id.match(/^voter-0[0-2]\d$/));
         }
       }
       return [];
@@ -434,7 +434,7 @@ export const VotingProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         // 3. Voters (Hanya data DPT yang diunggah oleh admin, buang data dummy bawaan)
         const unsubVoters = subscribeCollection<Voter>(COLLECTIONS.VOTERS, (data) => {
           if (data) {
-            const realVoters = data.filter((v) => !v.id.startsWith('voter-0'));
+            const realVoters = data.filter((v) => !v.id.match(/^voter-0[0-2]\d$/));
             setVoters(realVoters);
             try {
               localStorage.setItem(STORAGE_KEYS.VOTERS, JSON.stringify(realVoters));
